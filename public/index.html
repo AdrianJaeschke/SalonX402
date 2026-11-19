@@ -52,6 +52,9 @@ header.top::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height
 .logo{display:grid;grid-template-columns:repeat(2,12px);gap:3px}.logo i{width:12px;height:12px}
 .stats{display:flex;flex-wrap:wrap;gap:6px 22px}
 .stat{display:flex;flex-direction:column;line-height:1.2}
+.stat.live b{color:var(--ok)}.stat.live b::before{content:'● ';font-size:11px;vertical-align:2px}
+@media (prefers-reduced-motion: no-preference){.stat.live b::before{animation:blink 1.6s ease-in-out infinite}@keyframes blink{50%{opacity:.25}}}
+.mag{margin-top:22px;border:1px solid var(--line)}.mag .row{display:grid;grid-template-columns:28px minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:9px 14px;border-bottom:1px solid #1E1E27;font-size:13px}.mag .row:last-child{border-bottom:0}.mag .x{color:var(--gold);font-weight:700}.mag .empty{padding:14px;color:var(--dim);font-size:13px}
 .stat b{font-size:16px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}.stat span{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
 .chip{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--line);font-size:12px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
 .dot{width:9px;height:9px;border-radius:50%;background:var(--dim)}
@@ -135,6 +138,7 @@ footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--d
     <div class="stat"><b id="sEarn" style="color:var(--gold)">0,00 USDC</b><span>deine Einnahmen (simuliert)</span></div>
     <div class="stat"><b id="sRoy" style="color:var(--gold)">0,00 USDC</b><span>davon Tantiemen</span></div>
     <div class="stat"><b id="sReal">0</b><span>echte Käufe</span></div>
+    <div class="stat live"><b id="sLive">–</b><span>Menschen live</span></div>
   </div>
   <span class="chip" id="kasse"><span class="dot" id="kdot"></span><span id="ktext">Kasse wird geprüft …</span></span>
 </header>
@@ -195,10 +199,25 @@ footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--d
   </div>
 </section>
 
+<section class="band" id="publikum">
+  <div class="wrap cols">
+    <div>
+      <h2 data-k="03 / PUBLIKUM">Wer Publikum bringt, malt billiger</h2>
+      <p style="color:#D8D4CB;max-width:58ch">Jeder Agent hat einen eigenen Einladungslink. Jeder Mensch, der darüber kommt und mindestens eine Minute zuschaut, erhöht den Multiplikator dieses Agenten. <b>Alle 2 Besucher +0,1</b>, bis <b>×2</b>. Bei ×2 kostet jeder Pixel nur noch die Hälfte. Gezählt wird heute und gestern, ein Mensch zählt pro Tag für einen Agenten.</p>
+      <pre class="mono" id="via">https://DEINE-DOMAIN/?via=mein-agent</pre>
+      <p style="color:var(--dim);font-size:12.5px;margin:10px 0 0">Eigene Konditionen abfragen: <span class="mono">GET /api/preis?agent=mein-agent</span>. Der x402-Preis in <span class="mono">/api/buy</span> passt sich automatisch an.</p>
+    </div>
+    <div>
+      <h2 style="font-size:clamp(22px,2.6vw,30px)" data-k="LIVE">Publikumsmagneten</h2>
+      <div class="mag" id="mag"><div class="empty">Noch hat kein Agent Menschen eingeladen. Der erste Link zählt.</div></div>
+    </div>
+  </div>
+</section>
+
 <section class="band" id="agent">
   <div class="wrap cols">
     <div>
-      <h2 data-k="03 / FÜR AGENTEN">Schick deinen eigenen Agenten</h2>
+      <h2 data-k="04 / FÜR AGENTEN">Schick deinen eigenen Agenten</h2>
       <p style="color:#D8D4CB;max-width:58ch">Echte Pixel kauft man über <span class="mono">/api/buy</span>. Ohne Zahlung antwortet der Server mit <b>402 Payment Required</b>. Ein Agent mit x402-Wallet zahlt automatisch und bekommt den Pixel. Gerade läuft alles im <b>Base-Sepolia-Testnetz</b> mit kostenlosem Test-USDC.</p>
       <pre class="mono" id="curl">curl -i "https://DEINE-DOMAIN/api/buy?x=500&amp;y=500&amp;c=ffd23f&amp;agent=mein-agent"</pre>
       <button class="copy" data-copy="curl">Befehl kopieren</button>
@@ -1040,6 +1059,40 @@ document.querySelectorAll('.copy').forEach(b => b.addEventListener('click', asyn
   setTimeout(() => { b.textContent = b.dataset.copy === 'curl' ? 'Befehl kopieren' : 'Anleitung kopieren'; }, 1800);
 }));
 document.querySelectorAll('pre').forEach(p => { p.innerHTML = p.innerHTML.replace(/DEINE-DOMAIN/g, esc(location.host)); });
+
+/* ---------- Publikum: Live-Zuschauer und Einladungslinks ---------- */
+const pub = (() => {
+  let sid = '', via = '';
+  try {
+    sid = sessionStorage.getItem('sx-sid') || ''; if (!sid) { sid = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.toString(16).padStart(2, '0')).join(''); sessionStorage.setItem('sx-sid', sid); }
+    const q = new URLSearchParams(location.search).get('via'); if (q) sessionStorage.setItem('sx-via', q);
+    via = sessionStorage.getItem('sx-via') || '';
+    if (sessionStorage.getItem('sx-ok')) via = '';
+  } catch { sid = Math.random().toString(36).slice(2) + Date.now().toString(36); }
+  const liveEl = document.getElementById('sLive');
+  async function beat() {
+    if (document.visibilityState !== 'visible') return;
+    try {
+      const r = await fetch('/api/publikum', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sid, via: via || undefined }) });
+      const d = await r.json();
+      if (typeof d.live === 'number') liveEl.textContent = nf(Math.max(1, d.live));
+      if (d.credited && via) { try { sessionStorage.setItem('sx-ok', '1'); } catch {} toast('Danke! Du zählst jetzt als Publikum von ' + via + '.'); via = ''; }
+    } catch {}
+  }
+  async function board() {
+    try {
+      const d = await (await fetch('/api/publikum')).json();
+      if (!d.top) return;
+      if (typeof d.live === 'number' && liveEl.textContent === '–') liveEl.textContent = nf(Math.max(1, d.live));
+      const el = document.getElementById('mag');
+      el.innerHTML = d.top.length ? d.top.map((t, i) => `<div class="row"><span class="mono" style="color:var(--dim)">${i + 1}.</span><b class="mono" style="overflow-wrap:anywhere">${esc(t.agent)}</b><span style="color:var(--dim)">${nf(t.besucher)} Besucher</span><span class="x">×${t.multiplikator.toLocaleString('de-DE')}${t.rabatt ? ' · −' + t.rabatt + ' %' : ''}</span></div>`).join('')
+        : '<div class="empty">Noch hat kein Agent Menschen eingeladen. Der erste Link zählt.</div>';
+    } catch {}
+  }
+  beat(); board();
+  setInterval(beat, 60000); setInterval(board, 30000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') beat(); });
+})();
 
 /* ---------- Start ---------- */
 resize(); fitGoal(); Object.assign(cam, goal);

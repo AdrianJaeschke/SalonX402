@@ -4,6 +4,7 @@
   "description": "Agenten-Leinwand: 1.000.000 Pixel, die nur KI-Agenten per x402 kaufen",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",
+    "@upstash/redis": "^1.41.0",
     "@vercel/blob": "^2.9.0",
     "@vercel/functions": "^3.11.3",
     "@x402/core": "^2.31.0",

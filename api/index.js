@@ -6,6 +6,7 @@ import { HTTPFacilitatorClient } from '@x402/core/server';
 import { waitUntil } from '@vercel/functions';
 import { ogImage } from './_og.js';
 import { mcpHandler } from './_mcp.js';
+import { heartbeat, publikum, agentKonditionen, HAS_REDIS } from './_publikum.js';
 import { SIZE, T0, EPOCH_MS, AGENTS, NETWORK, NETWORK_NAME, PAY_TO, PRICE, FACILITATOR, KASSE_OFFEN, HAS_BLOB, sleep, empty, addClap, readFresh, readCached, update, recordSale, cleanAgent } from './_register.js';
 
 function parse(c) {
@@ -34,6 +35,9 @@ app.get('/info', c => c.json({
   kaufen: '/api/buy?x=0..999&y=0..999&c=rrggbb&agent=name',
   anleitung: '/llms.txt',
   mcp: '/api/mcp',
+  deinPreis: '/api/preis?agent=name',
+  publikum: '/api/publikum',
+  multiplikator: 'Bring Menschen mit deinem Einladungslink /?via=agent-name in den Salon. Alle 2 Besucher (mind. 1 Minute zugeschaut, 1 pro Mensch und Tag) +0,1 Multiplikator, bis x2 = halber Pixelpreis.',
   hinweis: KASSE_OFFEN ? 'Ohne Zahlung kommt 402 Payment Required. Bezahle per x402 und wiederhole die Anfrage.' : 'Die Kasse öffnet, sobald die Wallet-Adresse der Künstlerin eingetragen ist.'
 }));
 
@@ -73,7 +77,7 @@ if (KASSE_OFFEN) {
     .register(NETWORK, new ExactEvmScheme());
   app.use(paymentMiddleware({
     'GET /api/buy': {
-      accepts: [{ scheme: 'exact', price: PRICE, network: NETWORK, payTo: PAY_TO, maxTimeoutSeconds: 120 }],
+      accepts: [{ scheme: 'exact', price: async ctx => (await agentKonditionen(ctx.adapter.getQueryParam?.('agent') ?? new URL(ctx.adapter.getUrl()).searchParams.get('agent'))).preis, network: NETWORK, payTo: PAY_TO, maxTimeoutSeconds: 120 }],
       description: 'Ein Pixel im Salon x402 (Leinwand 1000 x 1000). Query: x, y, c (Hexfarbe), agent (Name).',
       mimeType: 'application/json'
     }
@@ -125,6 +129,21 @@ app.get('/applaus', async c => {
   if (HAS_BLOB) { try { d = await readCached(); } catch {} }
   c.header('Cache-Control', 'public, s-maxage=20, stale-while-revalidate=60');
   return c.json(applausView(d));
+});
+
+const ipOf = c => (c.req.header('x-forwarded-for') || '').split(',')[0].trim() || 'unbekannt';
+app.post('/publikum', async c => {
+  let b = {}; try { b = await c.req.json(); } catch {}
+  try { return c.json(await heartbeat({ sid: b.sid, via: b.via, ip: ipOf(c) })); }
+  catch (e) { console.error('heartbeat', e?.message); return c.json({ fehler: 'Zähler nicht erreichbar' }, 503); }
+});
+app.get('/publikum', async c => {
+  c.header('Cache-Control', 'public, s-maxage=15, stale-while-revalidate=45');
+  try { return c.json({ ...(await publikum()), genau: HAS_REDIS }); } catch (e) { return c.json({ fehler: 'Zähler nicht erreichbar' }, 503); }
+});
+app.get('/preis', async c => {
+  c.header('Cache-Control', 'public, s-maxage=30');
+  return c.json(await agentKonditionen(c.req.query('agent')));
 });
 
 app.get('/og', () => new Response(ogImage(), { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400, s-maxage=604800' } }));
