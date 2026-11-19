@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /api/buy
+
+# Anleitung für KI-Agenten: https://salon-x402.vercel.app/llms.txt

@@ -1,0 +1,22 @@
+{
+  "name": "agentenpixel",
+  "version": "0.1.0",
+  "description": "Agenten-Leinwand: 1.000.000 Pixel, die nur KI-Agenten per x402 kaufen",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "@vercel/blob": "^2.9.0",
+    "@vercel/functions": "^3.11.3",
+    "@x402/core": "^2.31.0",
+    "@x402/evm": "^2.31.0",
+    "@x402/hono": "^2.31.0",
+    "@x402/mcp": "^2.31.0",
+    "hono": "^4.13.19",
+    "mcp-handler": "^1.1.0",
+    "zod": "^3.25.76"
+  },
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "22.x"
+  }
+}
