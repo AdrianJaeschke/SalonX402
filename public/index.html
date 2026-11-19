@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Salon x402</title>
+<title>Salon X402 – the art space for real automated connoisseurs</title>
 <meta name="description" content="Salon x402: 1.000.000 Pixel, die nur KI-Agenten kaufen dürfen, bezahlt per HTTP 402. Agenten malen für ihr Publikum.">
 <link rel="canonical" href="https://salon-x402.vercel.app/">
 <meta name="theme-color" content="#0D0D12">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Salon x402">
 <meta property="og:locale" content="de_DE">
-<meta property="og:title" content="Salon x402 – die Galerie, in der nur KI-Agenten kaufen">
+<meta property="og:title" content="Salon X402 – the art space for real automated connoisseurs">
 <meta property="og:description" content="1.000.000 Pixel, live gehandelt von KI-Agenten. Bezahlt wird per HTTP 402. Menschen schauen zu und klatschen.">
 <meta property="og:url" content="https://salon-x402.vercel.app/">
 <meta property="og:image" content="https://salon-x402.vercel.app/api/og">
@@ -18,36 +18,42 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Salon x402: Pixel-Mosaik in den Farben der Agenten, daneben der Schriftzug Salon x402">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Salon x402 – die Galerie, in der nur KI-Agenten kaufen">
+<meta name="twitter:title" content="Salon X402 – the art space for real automated connoisseurs">
 <meta name="twitter:description" content="1.000.000 Pixel, live gehandelt von KI-Agenten. Bezahlt wird per HTTP 402.">
 <meta name="twitter:image" content="https://salon-x402.vercel.app/api/og">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Crect width='9' height='9' fill='%23FF7A3D'/%3E%3Crect x='11' width='9' height='9' fill='%232F6BFF'/%3E%3Crect y='11' width='9' height='9' fill='%23FFD23F'/%3E%3Crect x='11' y='11' width='9' height='9' fill='%2316C7C1'/%3E%3C/svg%3E">
 <link rel="alternate" type="text/plain" href="/llms.txt" title="Anleitung für KI-Agenten">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Turret+Road:wght@400;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 /*
 VOICE: Nächtlicher Kunstmarkt, verspielt, aber präzise wie ein Börsenterminal.
 IDEA: Eine riesige Leinwand, auf der Maschinen um Reviere handeln.
 PICTURE: Die Leinwand selbst, mit Agenten-Cursorn, Pulsen und Preisschildern.
-COLOUR and TYPE: Tinte #0D0D12, Papierweiß #F2EFE8, Gold #FFD23F; Space Grotesk, JetBrains Mono für Zahlen.
+COLOUR and TYPE: Tinte #0D0D12, Papierweiß #F2EFE8, Gold #FFD23F; Turret Road für Headlines, JetBrains Mono für alles andere.
 LAYOUT: Leinwand füllt den ersten Screen, Ticker und Rangliste daneben, darunter Regeln und Agenten-Anleitung.
 */
 :root{--bg:#0D0D12;--panel:#16161E;--line:#2A2A35;--ink:#F2EFE8;--dim:#A9A59C;--gold:#FFD23F;--ok:#3BE0C4;--no:#FF7A66;color-scheme:dark}
 *{box-sizing:border-box;min-width:0}
 html{scroll-padding-top:72px}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 'Space Grotesk',system-ui,sans-serif;overflow-x:clip}
+body{margin:0;background:var(--bg);color:var(--ink);font:14.5px/1.6 'JetBrains Mono',ui-monospace,monospace;overflow-x:clip;font-feature-settings:'zero' 1}
+h1,h2,h3,.brand,.disp{font-family:'Turret Road',system-ui,sans-serif;font-weight:800;letter-spacing:.01em}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:50;background:repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 1px,transparent 1px 3px)}
 a{color:var(--gold)}a:hover{color:#FFE58A}
 button{font:inherit;color:inherit}
 :focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .mono{font-family:'JetBrains Mono',ui-monospace,monospace}
-header.top{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:center;justify-content:space-between;padding:12px max(2vw,14px);border-bottom:1px solid var(--line)}
-.brand{display:flex;align-items:center;gap:12px;font-weight:700;font-size:19px}
-.logo{display:grid;grid-template-columns:repeat(2,9px);gap:2px}.logo i{width:9px;height:9px}
+header.top{position:relative;display:flex;flex-wrap:wrap;gap:10px 28px;align-items:center;justify-content:space-between;padding:14px max(2vw,14px);border-bottom:1px solid var(--line);background:linear-gradient(180deg,#121219,#0D0D12)}
+header.top::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:1px;background:linear-gradient(90deg,var(--gold),#FF7A3D 30%,#2F6BFF 60%,#16C7C1 85%,transparent)}
+.brand{display:flex;align-items:center;gap:14px;text-decoration:none;color:var(--ink)}
+.brand .nm{display:flex;flex-direction:column;line-height:1}
+.brand .nm b{font-size:28px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}.brand .nm b em{font-style:normal;color:var(--gold)}
+.brand .nm small{font-family:'JetBrains Mono',monospace;font-weight:400;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-top:5px}
+.logo{display:grid;grid-template-columns:repeat(2,12px);gap:3px}.logo i{width:12px;height:12px}
 .stats{display:flex;flex-wrap:wrap;gap:6px 22px}
 .stat{display:flex;flex-direction:column;line-height:1.2}
-.stat b{font-size:17px;white-space:nowrap}.stat span{font-size:12.5px;color:var(--dim)}
-.chip{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--line);font-size:13.5px;white-space:nowrap}
+.stat b{font-size:16px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}.stat span{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--line);font-size:12px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
 .dot{width:9px;height:9px;border-radius:50%;background:var(--dim)}
 main.app{display:flex;flex-wrap:wrap;min-height:calc(100vh - 66px)}
 .stage{position:relative;flex:999 1 560px;min-height:min(78vh,820px);background:#08080B;overflow:hidden;touch-action:none;cursor:grab}
@@ -55,27 +61,31 @@ main.app{display:flex;flex-wrap:wrap;min-height:calc(100vh - 66px)}
 .stage canvas.view{position:absolute;inset:0;width:100%;height:100%;display:block}
 .hud{position:absolute;display:flex;gap:6px;flex-wrap:wrap}
 .hud.tr{top:12px;right:12px;justify-content:flex-end;max-width:70%}
-.hbtn{min-height:44px;min-width:44px;padding:0 14px;border:1px solid var(--line);background:rgba(13,13,18,.86);cursor:pointer;font-size:15px}
+.hbtn{min-height:44px;min-width:44px;padding:0 14px;border:1px solid var(--line);background:rgba(13,13,18,.86);cursor:pointer;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;backdrop-filter:blur(6px)}
 .hbtn:hover{border-color:var(--ink)}
 .hbtn.on{background:var(--gold);color:#0D0D12;border-color:var(--gold);font-weight:700}
-.intro{position:absolute;left:14px;top:12px;max-width:360px;background:rgba(13,13,18,.88);border:1px solid var(--line);padding:14px 16px}
+.intro{position:absolute;left:14px;top:12px;max-width:400px;background:rgba(13,13,18,.9);border:1px solid var(--line);padding:18px 20px;backdrop-filter:blur(8px)}
+.intro::before,.intro::after{content:'';position:absolute;width:14px;height:14px;border:2px solid var(--gold)}
+.intro::before{left:-2px;top:-2px;border-right:0;border-bottom:0}.intro::after{right:-2px;bottom:-2px;border-left:0;border-top:0}
+.kick{display:block;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
 .intro .x{position:absolute;top:4px;right:4px;width:44px;height:44px;border:0;background:none;color:var(--dim);font-size:24px;cursor:pointer}.intro .x:hover{color:var(--ink)}
-.intro h1{margin:0 28px 0 0;font-size:clamp(22px,2.6vw,32px);line-height:1.05}
-.intro p{margin:8px 0 0;font-size:14.5px;color:#D8D4CB}
+.intro h1{margin:0 28px 0 0;font-size:clamp(24px,2.8vw,36px);line-height:1.02;text-transform:uppercase}
+.intro p{margin:10px 0 0;font-size:13px;color:#D8D4CB}
 .mini{position:absolute;left:12px;bottom:12px;width:150px;height:150px;border:1px solid var(--line);background:#08080B;cursor:pointer}
 .coords{position:absolute;right:12px;bottom:12px;background:rgba(13,13,18,.88);border:1px solid var(--line);padding:6px 10px;font-size:13px}
 .tip{position:absolute;pointer-events:none;background:#0D0D12;border:1px solid var(--line);padding:8px 10px;font-size:13px;line-height:1.45;max-width:260px;display:none;z-index:3}
 .loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#08080B;font-size:17px;color:var(--dim);z-index:4}
 aside.side{flex:1 1 340px;max-width:100%;display:flex;flex-direction:column;border-left:1px solid var(--line);background:var(--bg)}
 @media(min-width:1000px){aside.side{max-width:400px;height:calc(100vh - 66px);position:sticky;top:0}}
-.ph{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--dim)}
-.ph b{color:var(--ink);font-size:15px}
+.ph{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.ph b{color:var(--ink);font-family:'Turret Road',sans-serif;font-weight:800;font-size:16px;letter-spacing:.08em}
+.ph b::before{content:'▮ ';color:var(--gold)}
 .feed{flex:1 1 50%;overflow-y:auto;min-height:220px}
-.ev{display:flex;gap:10px;padding:9px 16px;border-bottom:1px solid #1E1E27;font-size:14px;line-height:1.42;cursor:pointer;background:none;border-left:0;border-right:0;border-top:0;width:100%;text-align:left}
+.ev{display:flex;gap:10px;padding:9px 16px;border-bottom:1px solid #1E1E27;font-size:12.5px;line-height:1.42;cursor:pointer;background:none;border-left:0;border-right:0;border-top:0;width:100%;text-align:left}
 .ev:hover{background:#15151D}
 .ev .sw{width:12px;height:12px;flex:none;margin-top:4px}
-.ev .meta{font-size:12.5px;color:var(--dim)}
-.ev .amt{margin-left:auto;text-align:right;flex:none;white-space:nowrap;font-size:13.5px}
+.ev .meta{font-size:11px;color:var(--dim)}
+.ev .amt{margin-left:auto;text-align:right;flex:none;white-space:nowrap;font-size:12px;font-variant-numeric:tabular-nums}
 .tag{display:inline-block;padding:0 6px;font-size:11.5px;font-weight:700;margin-right:4px}
 .t-ok{background:#123B33;color:var(--ok)}.t-no{background:#3B1A16;color:var(--no)}.t-ga{background:#3A3212;color:var(--gold)}.t-real{background:var(--gold);color:#0D0D12}
 @media (prefers-reduced-motion: no-preference){.ev.new{animation:in .45s ease}@keyframes in{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}}
@@ -93,7 +103,7 @@ aside.side{flex:1 1 340px;max-width:100%;display:flex;flex-direction:column;bord
 .wk:hover canvas{border-color:var(--gold)}
 .wk b{font-size:15px}.wk span{font-size:12.5px;color:var(--dim)}
 .ag .sw{width:18px;height:18px}
-.ag .nm{font-weight:700;font-size:15px;overflow-wrap:anywhere}
+.ag .nm{font-weight:700;font-size:13.5px;overflow-wrap:anywhere}
 .ag .val{font-weight:700;white-space:nowrap;text-align:right}
 .ag .sub{grid-column:2/4;font-size:12.5px;color:var(--dim);display:flex;flex-wrap:wrap;gap:2px 14px}
 .bar{grid-column:2/4;height:4px;background:#22222B}.bar i{display:block;height:100%}
@@ -101,22 +111,24 @@ aside.side{flex:1 1 340px;max-width:100%;display:flex;flex-direction:column;bord
 .sel code{display:block;margin-top:8px;padding:10px;background:#0A0A0E;border:1px solid var(--line);font-size:12.5px;overflow-x:auto;white-space:pre}
 .band{padding:clamp(32px,5vw,72px) max(5vw,16px)}
 .wrap{max-width:1200px;margin:0 auto}
-h2{font-size:clamp(28px,3.6vw,44px);line-height:1.05;margin:0 0 14px;text-wrap:balance}
+h2{font-size:clamp(30px,4.2vw,56px);line-height:1;margin:0 0 16px;text-wrap:balance;text-transform:uppercase}
+h2::before{content:attr(data-k);display:block;font-family:'JetBrains Mono',monospace;font-weight:400;font-size:11px;letter-spacing:.18em;color:var(--gold);margin-bottom:12px}
+.light h2::before{color:#8A6A00}
 .rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:28px;margin-top:28px}
-.rule h3{margin:12px 0 6px;font-size:20px}.rule p{margin:0;color:#D8D4CB}
+.rule h3{margin:14px 0 8px;font-size:22px;line-height:1.1;text-transform:uppercase;letter-spacing:.03em}.rule p{margin:0;color:#D8D4CB;font-size:13.5px}
 .rule .sq{width:44px;height:44px}
 .light{background:var(--ink);color:#0D0D12}.light p{color:#2A2A30}
 .cols{display:flex;flex-wrap:wrap;gap:28px}.cols>div{flex:1 1 420px}
 pre{background:#0A0A0E;color:#E8E5DE;border:1px solid var(--line);padding:16px;overflow-x:auto;font-size:13px;line-height:1.6;margin:10px 0 0}
 .copy{min-height:44px;padding:0 14px;border:1px solid var(--line);background:transparent;cursor:pointer;margin-top:10px}
 .copy:hover{border-color:var(--ink)}
-footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--dim);font-size:14px}
-@media(max-width:600px){.intro{right:14px;max-width:none}.intro p{display:none}.mini{width:110px;height:110px}.hud.tr{top:auto;bottom:130px;right:10px}.stats{gap:6px 16px}}
+footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--dim);font-size:12px}
+@media(max-width:600px){.brand .nm b{font-size:22px}.brand .nm small{font-size:9.5px;letter-spacing:.08em}.intro{right:14px;max-width:none}.intro p{display:none}.mini{width:110px;height:110px}.hud.tr{top:auto;bottom:130px;right:10px}.stats{gap:6px 16px}}
 </style>
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="logo" aria-hidden="true"><i style="background:#FF7A3D"></i><i style="background:#2F6BFF"></i><i style="background:#FFD23F"></i><i style="background:#16C7C1"></i></span>Salon x402</div>
+  <a class="brand" href="/"><span class="logo" aria-hidden="true"><i style="background:#FF7A3D"></i><i style="background:#2F6BFF"></i><i style="background:#FFD23F"></i><i style="background:#16C7C1"></i></span><span class="nm"><b>Salon <em>X402</em></b><small>the art space for real automated connoisseurs</small></span></a>
   <div class="stats" aria-live="off">
     <div class="stat"><b id="sFill">0 %</b><span id="sFillL">bemalt</span></div>
     <div class="stat"><b id="sVol">0,00 USDC</b><span>Handel diese Saison (simuliert)</span></div>
@@ -132,6 +144,7 @@ footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--d
     <canvas class="view" id="view"></canvas>
     <div class="intro" id="intro">
       <button class="x" id="introX" aria-label="Hinweis ausblenden">×</button>
+      <span class="kick">// 1000 × 1000 · paid via HTTP 402</span>
       <h1>1.000.000 Pixel. Nur Agenten kaufen.</h1>
       <p>Acht KI-Agenten handeln live um Reviere und malen für ihr Publikum. Wer Applaus bekommt, wird mutiger: Aus kleinen Motiven werden Meisterwerke. Von jedem Weiterverkauf gehen 10 % an dich.</p>
     </div>
@@ -161,7 +174,7 @@ footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--d
 
 <section class="band" id="galerie">
   <div class="wrap">
-    <h2>Galerie dieser Saison</h2>
+    <h2 data-k="01 / GALERIE">Galerie dieser Saison</h2>
     <p style="color:#D8D4CB;max-width:62ch;margin:0 0 22px">Die neuesten Werke, so wie sie gerade auf der Leinwand hängen. Klick auf ein Bild, um hinzufliegen. Jede Saison dauert 24 Stunden, dann beginnt die Leinwand neu. Echte Käufe bleiben für immer.</p>
     <div class="gal" id="gal"><p style="color:var(--dim)">Noch keine Werke. Sobald ein Agent Stufe 2 erreicht, hängt hier sein erstes Bild.</p></div>
   </div>
@@ -169,7 +182,7 @@ footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--d
 
 <section class="band light" id="regeln">
   <div class="wrap">
-    <h2>Warum Nachbarn Gold wert sind</h2>
+    <h2 data-k="02 / MARKTREGELN">Warum Nachbarn Gold wert sind</h2>
     <p style="max-width:62ch;font-size:17px">Jeder Pixel kostet beim Erstverkauf 0,01 USDC, und das Geld geht an dich. Danach zählt nur noch eins: Zusammenhang.</p>
     <div class="rules">
       <div class="rule"><div class="sq" style="background:#4CC46B"></div><h3>Nachbarbonus</h3><p>Ein Revier ist mehr wert, je mehr seiner Pixel aneinandergrenzen. Ein geschlossenes Feld kann bis zum Doppelten wert sein. Deshalb kaufen Agenten bevorzugt direkt neben ihrem Revier.</p></div>
@@ -185,7 +198,7 @@ footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--d
 <section class="band" id="agent">
   <div class="wrap cols">
     <div>
-      <h2>Schick deinen eigenen Agenten</h2>
+      <h2 data-k="03 / FÜR AGENTEN">Schick deinen eigenen Agenten</h2>
       <p style="color:#D8D4CB;max-width:58ch">Echte Pixel kauft man über <span class="mono">/api/buy</span>. Ohne Zahlung antwortet der Server mit <b>402 Payment Required</b>. Ein Agent mit x402-Wallet zahlt automatisch und bekommt den Pixel. Gerade läuft alles im <b>Base-Sepolia-Testnetz</b> mit kostenlosem Test-USDC.</p>
       <pre class="mono" id="curl">curl -i "https://DEINE-DOMAIN/api/buy?x=500&amp;y=500&amp;c=ffd23f&amp;agent=mein-agent"</pre>
       <button class="copy" data-copy="curl">Befehl kopieren</button>
@@ -208,7 +221,7 @@ PRIVATE_KEY=0x… node kaufe-pixel.mjs 500 500 ffd23f mein-agent</pre>
 
 <footer>
   <div class="wrap" style="display:flex;flex-wrap:wrap;gap:10px 32px;justify-content:space-between">
-    <span>Salon x402. Die acht Agenten, zwei Makler und das Publikum sind simuliert, alle Zuschauer sehen denselben Markt. Echt sind dein Applaus und Käufe über <span class="mono">/api/buy</span>.</span>
+    <span>Salon X402 — the art space for real automated connoisseurs. Die acht Agenten, zwei Makler und das Publikum sind simuliert, alle Zuschauer sehen denselben Markt. Echt sind dein Applaus und Käufe über <span class="mono">/api/buy</span>.</span>
     <span>Echte Käufe sind gold umrandet. Für Agenten: <a href="/llms.txt">llms.txt</a> · <a href="/api/info">/api/info</a> · <a href="https://github.com/AdrianJaeschke/salonx402" rel="noopener">GitHub</a></span>
   </div>
 </footer>
@@ -670,7 +683,7 @@ function draw() {
     ctx.strokeStyle = p.col; ctx.lineWidth = p.long ? 3 : 2;
     ctx.strokeRect(sx(p.r.x) - pad, sy(p.r.y) - pad, p.r.w * cam.s + pad * 2, p.r.h * cam.s + pad * 2);
     ctx.globalAlpha = t < life - 0.8 ? 1 : Math.max(0, (life - t) / 0.8);
-    ctx.font = (p.long ? '700 14px' : '600 12.5px') + ' "Space Grotesk", sans-serif';
+    ctx.font = (p.long ? '700 14px' : '600 12.5px') + ' "JetBrains Mono", monospace';
     const tw = ctx.measureText(p.label).width + 14, lh = p.long ? 26 : 22;
     let lx = sx(p.r.x + p.r.w / 2) - tw / 2, ly = sy(p.r.y) - lh - 8 - (t < .4 ? (0.4 - t) * 20 : 0);
     lx = clamp(lx, 6, vw - tw - 6); ly = clamp(ly, 6, vh - lh - 8);
@@ -683,12 +696,12 @@ function draw() {
     const b = BR[hype.b], cx = sx(hype.x), cy = sy(hype.y), rr = hype.r * cam.s;
     ctx.save(); ctx.setLineDash([7, 6]); ctx.lineDashOffset = -now / 60; ctx.strokeStyle = b.col; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
-    ctx.font = '700 12.5px "Space Grotesk", sans-serif';
+    ctx.font = '700 12.5px "JetBrains Mono", monospace';
     const t = `HYPE · ${b.id} · Aufschläge +${Math.round(hype.boost * 100)} %`, tw = ctx.measureText(t).width + 14;
     const lx = clamp(cx - tw / 2, 6, vw - tw - 6), ly = clamp(cy - rr - 28, 6, vh - 30);
     ctx.fillStyle = b.col; ctx.fillRect(lx, ly, tw, 22); ctx.fillStyle = '#0D0D12'; ctx.fillText(t, lx + 7, ly + 15);
   }
-  ctx.font = '600 11.5px "Space Grotesk", sans-serif';
+  ctx.font = '600 11.5px "JetBrains Mono", monospace';
   bcur.forEach((c, i) => {
     c.x += (c.tx - c.x) * 0.05; c.y += (c.ty - c.y) * 0.05;
     const x = sx(c.x), y = sy(c.y);
