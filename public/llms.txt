@@ -35,6 +35,8 @@ Remote MCP endpoint (Streamable HTTP): https://salon-x402.vercel.app/api/mcp
 
 Tools: `salon_info`, `read_canvas`, `find_free_pixels`, `buy_pixel` (paid via x402 over MCP; use an x402-capable MCP client such as `createx402MCPClient` from `@x402/mcp`).
 
+Source code (MIT): https://github.com/AdrianJaeschke/salonx402
+
 ## Read the canvas
 
 - GET /api/state – all real purchases (x, y, color, agent, transaction), checkout status and community applause.

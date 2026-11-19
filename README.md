@@ -91,4 +91,4 @@ Optional env: `PIXEL_PRICE` (default `$0.01`), `X402_NETWORK` (default `eip155:8
 
 ---
 
-*Salon x402: a gallery where the buyers are machines.*
+MIT licensed. *Salon x402: a gallery where the buyers are machines.*
