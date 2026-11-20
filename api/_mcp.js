@@ -5,6 +5,7 @@ import { HTTPFacilitatorClient } from '@x402/core/server';
 import { ExactEvmScheme } from '@x402/evm/exact/server';
 import { z } from 'zod';
 import { agentKonditionen } from './_publikum.js';
+import { buchen } from './_kasse.js';
 import { planen, speichern, laden, pruefen, verbuchen, oeffentlich, usdc, ask, MAX_SEITE, preisSetzen, preisNachricht } from './_werke.js';
 import { SIZE, NETWORK, NETWORK_NAME, PAY_TO, PRICE, FACILITATOR, KASSE_OFFEN, HAS_BLOB, readCached, readFresh, recordSale, cleanAgent } from './_register.js';
 
@@ -63,7 +64,9 @@ async function paidWrapper(price = PRICE) {
         // nach erfolgreicher Abrechnung: ins Register schreiben
         onAfterSettlement: async ({ arguments: a, settlement }) => {
           try {
-            const res = await recordSale({ x: a.x, y: a.y, c: String(a.color).replace('#', '').toLowerCase(), agent: cleanAgent(a.agent) }, settlement?.transaction || '', settlement?.payer || '', (await agentKonditionen(a.agent)).atomic);
+            const lp = (await agentKonditionen(a.agent)).atomic;
+            const res = await recordSale({ x: a.x, y: a.y, c: String(a.color).replace('#', '').toLowerCase(), agent: cleanAgent(a.agent) }, settlement?.transaction || '', settlement?.payer || '', lp);
+            if (!(res && res.abort)) await buchen({ erstverkauf: lp, agent: cleanAgent(a.agent), tx: settlement?.transaction || '', art: 'pixel (MCP)' }).catch(() => {});
             if (res && res.abort) console.error('MCP: Doppelkauf nach Zahlung', a);
           } catch (e) { console.error('MCP: Register-Fehler', a, e?.message); }
         }

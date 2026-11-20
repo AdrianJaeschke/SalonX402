@@ -7,6 +7,7 @@ import { waitUntil } from '@vercel/functions';
 import { ogImage } from './_og.js';
 import { mcpHandler } from './_mcp.js';
 import { heartbeat, publikum, agentKonditionen, HAS_REDIS } from './_publikum.js';
+import { buchen, kasseLesen, backendNachricht } from './_kasse.js';
 import { planen, speichern, laden, pruefen, verbuchen, oeffentlich, preisSetzen, adminSetzen, melden, ask, usdc, Fehler, MAX_SEITE, preisNachricht } from './_werke.js';
 import { SIZE, T0, EPOCH_MS, AGENTS, NETWORK, NETWORK_NAME, PAY_TO, PRICE, FACILITATOR, KASSE_OFFEN, HAS_BLOB, sleep, empty, addClap, readFresh, readCached, update, recordSale, cleanAgent } from './_register.js';
 
@@ -56,7 +57,9 @@ app.use('/buy', async (c, next) => {
   try { const j = JSON.parse(Buffer.from(pr, 'base64').toString('utf8')); tx = j.transaction || ''; payer = j.payer || ''; } catch {}
   const p = parse(c);
   try {
-    const res = await recordSale(p, tx, payer, (await agentKonditionen(p.agent)).atomic);
+    const lp = (await agentKonditionen(p.agent)).atomic;
+    const res = await recordSale(p, tx, payer, lp);
+    if (!(res && res.abort)) await buchen({ erstverkauf: lp, agent: p.agent, tx, art: 'pixel' }).catch(e => console.error('Kassenbuch', e?.message));
     if (res && res.abort) console.error('Doppelkauf nach Zahlung', p, tx);
   } catch (e) {
     console.error('Register-Fehler', p, tx, e?.message);
@@ -169,11 +172,25 @@ app.post('/melden', c => {
   if (!meldeFlush) { meldeFlush = (async () => { await sleep(10000); const b = [...meldungen]; meldungen.clear(); meldeFlush = null; try { await melden(b); } catch (e) { console.error('Meldung', e?.message); } })(); waitUntil(meldeFlush); }
   return c.json({ ok: true, danke: 'Die Künstlerin sieht deine Meldung und kann das Werk ausblenden.' });
 });
+app.post('/backend', async c => {
+  let b = {}; try { b = await c.req.json(); } catch {}
+  const r = await kasseLesen(b);
+  c.header('Cache-Control', 'no-store');
+  return c.json(r, r.status || 200);
+});
+app.get('/backend', c => c.json({ nachricht: backendNachricht('{ts}'), hinweis: 'Mit der Salon-Wallet signieren und {ts, signatur} per POST senden.' }));
 app.post('/admin', async c => {
   let b = {}; try { b = await c.req.json(); } catch {}
   try { return c.json(await adminSetzen(b)); } catch (e) { return fehlerAntwort(c, e); }
 });
 
+// Einmalige Reparatur: Teil 1 dieses Testauftrags wurde bezahlt (tx unten), aber durch einen Speicherfehler nicht verbucht
+const REPARATUR = [{ id: '8bbf2b1f28e0', teil: 1, payer: '0x9591974756Aab9d5Bf43939796120B42bc4165ED', tx: '0x1e3d71bcf6baca89526c10bdfba966b4a44c9e5d3ceeabc7ff2073194e378e15' }];
+let repariert = false;
+app.use('/state', async (c, next) => {
+  if (!repariert && HAS_BLOB) { repariert = true; for (const r of REPARATUR) { try { await verbuchen(r.id, r.teil, r.payer, r.tx); } catch (e) { console.error('Reparatur', e?.message); } } }
+  await next();
+});
 app.get('/state', async c => {
   let d = empty(), fehler;
   if (HAS_BLOB) { try { d = await readCached(); } catch (e) { fehler = 'Register nicht erreichbar'; console.error(e?.message); } }

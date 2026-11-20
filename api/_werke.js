@@ -7,6 +7,7 @@ import { verifyMessage } from 'viem';
 import { compile, toHex } from '../public/formel.js';
 import { SIZE, PAY_TO, readFresh, readCached, update, cleanAgent } from './_register.js';
 import { agentKonditionen } from './_publikum.js';
+import { buchen } from './_kasse.js';
 
 export const MAX_SEITE = 32;               // Werke bis 32 × 32 Pixel
 export const FRIST_MS = 15 * 60_000;       // alle Teile innerhalb von 15 Minuten bezahlen
@@ -68,15 +69,16 @@ export async function planen(spec) {
   const teile = new Map(); // wallet -> betrag
   const add = (w, a) => teile.set(w, (teile.get(w) || 0) + a);
   let nFrei = 0, nAbkauf = 0;
+  const anteil = { erstverkauf: 0, tantiemen: 0, rueckkauf: 0 };
   const snap = [];
   for (let j = 0; j < ht; j++) for (let i = 0; i < wd; i++) {
     const k = (y + j) * SIZE + x + i;
     if (sperren.has(k)) throw new Fehler(`Pixel (${x + i}, ${y + j}) steckt gerade in einem anderen bezahlten Auftrag. In ein paar Minuten nochmal versuchen.`, 409);
     const s = idx.get(k);
-    if (!s) { add(SALON, frei); nFrei++; snap.push([k, 0, 0]); continue; }
+    if (!s) { add(SALON, frei); anteil.erstverkauf += frei; nFrei++; snap.push([k, 0, 0]); continue; }
     const a = ask(s), w = wallet(s.w);
     const t = Math.round(a * TANTIEME);
-    if (!w || w === SALON || (s.wk && versteckt.has(s.wk))) add(SALON, a); else { add(w, a - t); add(SALON, t); }
+    if (!w || w === SALON || (s.wk && versteckt.has(s.wk))) { add(SALON, a); anteil.rueckkauf += a; } else { add(w, a - t); add(SALON, t); anteil.tantiemen += t; }
     nAbkauf++; snap.push([k, s.w || '', a]);
   }
   if (teile.size > 6) throw new Fehler('Zu viele verschiedene Besitzer in dieser Fläche (max. 5). Bitte kleiner wählen.');
@@ -86,7 +88,7 @@ export async function planen(spec) {
   const now = Date.now();
   return {
     id, agent, x, y, wd, ht, ...bild, frei, erstellt: now, frist: now + FRIST_MS, nFrei, nAbkauf, snap,
-    teile: liste.map(([an, betrag], i) => ({ nr: i + 1, an, betrag, salon: an === SALON, bezahlt: false, tx: null }))
+    teile: liste.map(([an, betrag], i) => ({ nr: i + 1, an, betrag, salon: an === SALON, bezahlt: false, tx: null, ...(an === SALON ? { anteil } : {}) }))
   };
 }
 
@@ -140,6 +142,13 @@ export async function pruefen(id, nr, frisch) {
 
 // Nach einer erfolgreichen Zahlung: Teil abhaken, wenn alles bezahlt ist, die Fläche übergeben
 export async function verbuchen(id, nr, payer, tx) {
+  const r = await verbuchenIntern(id, nr, payer, tx);
+  if (r && r.ok && r.teil && r.teil.salon) {
+    try { await buchen({ ...(r.teil.anteil || { erstverkauf: r.teil.betrag }), agent: r.o.agent, tx, art: 'werk' }); } catch (e) { console.error('Kassenbuch', e?.message); }
+  }
+  return r;
+}
+async function verbuchenIntern(id, nr, payer, tx) {
   const vorlage = await laden(id);
   return update(d => {
     d.auftraege ||= {}; d.werke ||= []; d.fertig ||= {};
@@ -151,7 +160,7 @@ export async function verbuchen(id, nr, payer, tx) {
     const t = o.teile.find(t => t.nr === Number(nr));
     if (!t || t.bezahlt) return { abort: true, grund: 'teil schon bezahlt' };
     t.bezahlt = true; t.tx = tx || ''; t.von = wallet(payer) || '';
-    if (o.teile.some(t => !t.bezahlt)) { d.auftraege[id] = o; return { ok: true, fertig: false, o }; }
+    if (o.teile.some(t => !t.bezahlt)) { d.auftraege[id] = o; return { ok: true, fertig: false, o, teil: t }; }
     // Übergabe
     const kauf = wallet(payer) || o.teile.find(t => t.von)?.von || '';
     const fl = new Set(); for (let j = 0; j < o.ht; j++) for (let i = 0; i < o.wd; i++) fl.add((o.y + j) * SIZE + o.x + i);
@@ -166,7 +175,7 @@ export async function verbuchen(id, nr, payer, tx) {
     d.werke = d.werke.filter(w => d.sales.some(s => s.wk === w.id) || w.id === o.id);
     d.werke.push({ id: o.id, agent: o.agent, w: kauf, x: o.x, y: o.y, wd: o.wd, ht: o.ht, art: o.art, ...(o.f ? { f: o.f } : {}), ts: now, abgekauft: o.nAbkauf, gemeldet: 0 });
     o.fertig = true; delete d.auftraege[id]; d.fertig[id] = { ...o, snap: [] };
-    return { ok: true, fertig: true, o };
+    return { ok: true, fertig: true, o, teil: t };
   });
 }
 

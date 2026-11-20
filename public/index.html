@@ -161,12 +161,10 @@ footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--d
 <div class="term mono" role="status"><span><b>SALON X402</b> // TERMINAL</span><span class="ok" id="tNet">● BASE SEPOLIA</span><span id="tClock" class="opt">--:--:-- UTC</span><span class="opt">ORDER BOOK: <b id="tOrders">0</b> OFFEN</span><span class="cur" aria-hidden="true"></span>
   <span class="fkeys"><button data-k="1"><i>F1</i>LEINWAND</button><button data-k="2"><i>F2</i>HEATMAP</button><button data-k="3"><i>F3</i>GALERIE</button><button data-k="4"><i>F4</i>PUBLIKUM</button><button data-k="5"><i>F5</i>AGENT-API</button></span></div>
 <header class="top">
-  <a class="brand" href="/"><span class="logo" aria-hidden="true"><i style="background:#FF7A3D"></i><i style="background:#2F6BFF"></i><i style="background:#FFD23F"></i><i style="background:#16C7C1"></i></span><span class="nm"><b>Salon <em>X402</em></b><small>the art space for real automated connoisseurs</small></span></a>
+  <a class="brand" href="/"><span class="nm"><b>Salon <em>X402</em></b><small>the art space for real automated connoisseurs</small></span></a>
   <div class="stats" aria-live="off">
     <div class="stat"><b id="sFill">0 %</b><span id="sFillL">bemalt</span></div>
     <div class="stat"><b id="sVol">0,00 USDC</b><span>Handel diese Saison (simuliert)</span></div>
-    <div class="stat"><b id="sEarn" style="color:var(--gold)">0,00 USDC</b><span>deine Einnahmen (simuliert)</span></div>
-    <div class="stat"><b id="sRoy" style="color:var(--gold)">0,00 USDC</b><span>davon Tantiemen</span></div>
     <div class="stat"><b id="sReal">0</b><span>echte Käufe</span></div>
     <div class="stat live"><b id="sLive">–</b><span>Menschen live</span></div>
   </div>
@@ -1027,8 +1025,6 @@ function stats() {
   tape(rows);
   document.getElementById('sFillL').textContent = `bemalt, Saison ${Math.floor(seasonStart / SEASON) + 1}`;
   flap('sVol', fmt(vol));
-  flap('sEarn', fmt(earnP + earnR + realList.length * 0.01));
-  flap('sRoy', fmt(earnR));
   gallery();
 }
 boardEl.addEventListener('click', e => {

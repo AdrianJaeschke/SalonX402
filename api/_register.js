@@ -1,4 +1,12 @@
 import { put, get, head, list, BlobNotFoundError, BlobPreconditionFailedError } from '@vercel/blob';
+import { Redis } from '@upstash/redis';
+import { randomBytes } from 'node:crypto';
+
+// Redis sorgt dafür, dass immer nur einer schreibt und jeder Leser die neueste Version sieht.
+// (Der Blob-Speicher allein lieferte kurz nach einem Schreibvorgang manchmal noch den alten Stand.)
+const R_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+const R_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+const redis = R_URL && R_TOKEN ? new Redis({ url: R_URL, token: R_TOKEN }) : null;
 
 export const SIZE = 1000;
 export const T0 = Date.UTC(2026, 10, 19, 20, 0, 0);
@@ -56,7 +64,7 @@ const NACHTRAG = [
   { x: 497, y: 498, c: 'ffd23f', agent: 'salon-x402', tx: '0x2f9eb52b44db699133b095aeba50dfff8c92ff1c7ff12bd128955371b886ff83', ts: 1795124631000 },
   { x: 500, y: 501, c: '14141b', agent: 'salon-x402', tx: '0xc008e9400b3d60b38b0853ac3d3872b9f3decb6cd5ad77e31bd7ba7b51eafb8e', ts: 1795124631000 }
 ];
-export async function readFresh() {
+async function blobFresh() {
   // Version (ETag) vor und nach dem Lesen vergleichen: nur wenn sie gleich bleibt, passt der Inhalt zur Version
   for (let t = 0; t < 4; t++) {
     let h1;
@@ -70,9 +78,39 @@ export async function readFresh() {
   }
   throw new Error('Register ändert sich gerade zu schnell');
 }
+export async function readFresh() {
+  if (!redis) return blobFresh();
+  const want = Number(await redis.get('reg:ver')) || 0;
+  for (let t = 0; t < 12; t++) {
+    const r = await blobFresh();
+    if ((r.data.ver || 0) >= want) return r;
+    await sleep(250 + t * 100);
+  }
+  throw new Error('Register noch nicht aktuell, bitte gleich nochmal');
+}
+async function lockedUpdate(mutate) {
+  const me = 'L' + randomBytes(8).toString('hex');
+  let ok = false;
+  for (let t = 0; t < 60 && !ok; t++) { ok = !!(await redis.set('reg:lock', me, { nx: true, px: 20000 })); if (!ok) await sleep(150); }
+  if (!ok) throw new Error('Register gerade ausgelastet');
+  try {
+    const { data } = await readFresh();
+    for (const n of NACHTRAG) if (!data.sales.some(s => s.x === n.x && s.y === n.y)) data.sales.push(n);
+    const res = mutate(data);
+    if (res && res.abort) return res;
+    data.ver = (data.ver || 0) + 1;
+    await put(STATE, JSON.stringify(data), { access: 'public', addRandomSuffix: false, contentType: 'application/json', cacheControlMaxAge: 60, allowOverwrite: true });
+    await redis.set('reg:ver', data.ver);
+    cache = { data, at: Date.now() };
+    return res || { ok: true };
+  } finally {
+    if ((await redis.get('reg:lock')) === me) await redis.del('reg:lock');
+  }
+}
 export async function update(mutate) {
+  if (redis) return lockedUpdate(mutate);
   for (let t = 0; t < 6; t++) {
-    const { data, etag } = await readFresh();
+    const { data, etag } = await blobFresh();
     for (const n of NACHTRAG) if (!data.sales.some(s => s.x === n.x && s.y === n.y)) data.sales.push(n);
     const res = mutate(data);
     if (res && res.abort) return res;
