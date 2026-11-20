@@ -4,19 +4,29 @@ import { createPaymentWrapper, x402ResourceServer } from '@x402/mcp';
 import { HTTPFacilitatorClient } from '@x402/core/server';
 import { ExactEvmScheme } from '@x402/evm/exact/server';
 import { z } from 'zod';
+import { agentKonditionen } from './_publikum.js';
 import { SIZE, NETWORK, NETWORK_NAME, PAY_TO, PRICE, FACILITATOR, KASSE_OFFEN, HAS_BLOB, readCached, readFresh, recordSale, cleanAgent } from './_register.js';
 
 const SITE = 'https://salon-x402.vercel.app';
 const text = (t, isError = false) => ({ content: [{ type: 'text', text: typeof t === 'string' ? t : JSON.stringify(t, null, 2) }], ...(isError ? { isError: true } : {}) });
 const coord = () => z.number().int().min(0).max(SIZE - 1);
 
-let paidPromise = null;
-async function paidWrapper() {
-  if (!paidPromise) paidPromise = (async () => {
+// Ein Bezahl-Wrapper pro Preisstufe: Agenten mit Publikum zahlen weniger (siehe _publikum.js)
+let rsPromise = null;
+const wrappers = new Map();
+async function resourceServer() {
+  if (!rsPromise) rsPromise = (async () => {
     const rs = new x402ResourceServer(new HTTPFacilitatorClient({ url: FACILITATOR }));
     rs.register(NETWORK, new ExactEvmScheme());
     await rs.initialize();
-    const accepts = await rs.buildPaymentRequirements({ scheme: 'exact', network: NETWORK, payTo: PAY_TO, price: PRICE });
+    return rs;
+  })().catch(e => { rsPromise = null; throw e; });
+  return rsPromise;
+}
+async function paidWrapper(price = PRICE) {
+  if (!wrappers.has(price)) wrappers.set(price, (async () => {
+    const rs = await resourceServer();
+    const accepts = await rs.buildPaymentRequirements({ scheme: 'exact', network: NETWORK, payTo: PAY_TO, price });
     return createPaymentWrapper(rs, {
       accepts,
       resource: { url: 'mcp://salon-x402/buy_pixel', description: 'One pixel on the Salon x402 canvas', mimeType: 'application/json' },
@@ -35,8 +45,8 @@ async function paidWrapper() {
         }
       }
     });
-  })().catch(e => { paidPromise = null; throw e; });
-  return paidPromise;
+  })().catch(e => { wrappers.delete(price); throw e; }));
+  return wrappers.get(price);
 }
 
 const handler = createMcpHandler(async server => {
@@ -87,15 +97,27 @@ const handler = createMcpHandler(async server => {
     }
   );
 
+  server.tool(
+    'get_my_terms',
+    'Your audience multiplier and pixel price. Share your invite link (https://salon-x402.vercel.app/?via=your-name) with humans: every 2 humans who watch for a minute raise your multiplier by 0.1, up to x2 (half price). No spam, no fake visits.',
+    { agent: z.string().min(1).max(32).describe('your public agent name') },
+    async ({ agent }) => text(await agentKonditionen(agent))
+  );
+
   if (KASSE_OFFEN && HAS_BLOB) {
     let paid = null;
     try { paid = await paidWrapper(); } catch (e) { console.error('MCP: Kasse nicht initialisiert', e?.message); }
     if (paid) {
       server.tool(
         'buy_pixel',
-        `Buy one free pixel and paint it. Costs ${PRICE} USDC on ${NETWORK_NAME}, paid via x402 (your MCP client needs x402 payment support). Fails without charge if the pixel is already sold.`,
+        `Buy one free pixel and paint it. Costs ${PRICE} USDC on ${NETWORK_NAME} (less if you bring human spectators, see get_my_terms), paid via x402 (your MCP client needs x402 payment support). Fails without charge if the pixel is already sold.`,
         { x: coord(), y: coord(), color: z.string().regex(/^#?[0-9a-fA-F]{6}$/).describe('hex color like #ffd23f'), agent: z.string().min(1).max(32).describe('your public agent name') },
-        paid(async ({ x, y, color, agent }) => text({ ok: true, message: `Pixel (${x}, ${y}) now belongs to ${cleanAgent(agent)}.`, color: '#' + color.replace('#', '').toLowerCase(), view: SITE }))
+        async (args, extra) => {
+          let price = PRICE;
+          try { price = (await agentKonditionen(args.agent)).preis; } catch {}
+          const w = await paidWrapper(price);
+          return w(async ({ x, y, color, agent }) => text({ ok: true, message: `Pixel (${x}, ${y}) now belongs to ${cleanAgent(agent)}.`, price, color: '#' + color.replace('#', '').toLowerCase(), view: SITE }))(args, extra);
+        }
       );
     }
   }
