@@ -75,6 +75,10 @@ main.app{display:flex;flex-wrap:wrap;min-height:calc(100vh - 66px)}
 .intro h1{margin:0 28px 0 0;font-size:clamp(24px,2.8vw,36px);line-height:1.02;text-transform:uppercase}
 .intro p{margin:10px 0 0;font-size:13px;color:#D8D4CB}
 .mini{position:absolute;left:12px;bottom:12px;width:150px;height:150px;border:1px solid var(--line);background:#08080B;cursor:pointer}
+.legend{position:absolute;right:12px;top:66px;display:none;align-items:center;gap:10px;background:rgba(13,13,18,.9);border:1px solid var(--line);padding:8px 12px;font-size:11px;letter-spacing:.06em}
+.legend.on{display:flex}.legend .ramp{width:160px;height:10px;background:linear-gradient(90deg,#1a0b2e,#5b1a6e,#b5245a,#f0602b,#ffb81c,#fff6c2)}
+.legend .rl{display:flex;flex-direction:column;gap:4px}.legend .rl span{display:flex;justify-content:space-between;color:var(--dim)}
+@media(max-width:600px){.legend{top:12px;left:12px;right:auto}}
 .coords{position:absolute;right:12px;bottom:12px;background:rgba(13,13,18,.88);border:1px solid var(--line);padding:6px 10px;font-size:13px}
 .tip{position:absolute;pointer-events:none;background:#0D0D12;border:1px solid var(--line);padding:8px 10px;font-size:13px;line-height:1.45;max-width:260px;display:none;z-index:3}
 .loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#08080B;font-size:17px;color:var(--dim);z-index:4}
@@ -157,8 +161,10 @@ footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--d
       <button class="hbtn" id="bIn" aria-label="Hineinzoomen">+</button>
       <button class="hbtn" id="bOut" aria-label="Herauszoomen">−</button>
       <button class="hbtn" id="bFit">Ganzes Bild</button>
+      <button class="hbtn" id="bHeat" aria-pressed="false">Heatmap</button>
     </div>
     <canvas class="mini" id="mini" width="150" height="150" aria-label="Übersichtskarte, klicken zum Springen"></canvas>
+    <div class="legend mono" id="legend"><div class="rl"><b style="letter-spacing:.12em">PREIS PRO PIXEL</b><div class="ramp"></div><span><i id="lgMin">0,010</i><i id="lgMax">0,200 USDC</i></span></div></div>
     <div class="coords mono" id="coords">–</div>
     <div class="tip" id="tip"></div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -642,6 +648,58 @@ let dirty = { x0: 0, y0: 0, x1: W, y1: H };
 function markDirty(r) { if (!dirty) dirty = { x0: r.x, y0: r.y, x1: r.x + r.w, y1: r.y + r.h }; else { dirty.x0 = Math.min(dirty.x0, r.x); dirty.y0 = Math.min(dirty.y0, r.y); dirty.x1 = Math.max(dirty.x1, r.x + r.w); dirty.y1 = Math.max(dirty.y1, r.y + r.h); } }
 const markAll = () => { dirty = { x0: 0, y0: 0, x1: W, y1: H }; };
 
+/* ---------- Heatmap: wo ist es am teuersten? ---------- */
+const heatOff = document.createElement('canvas'); heatOff.width = W; heatOff.height = H;
+const hctx = heatOff.getContext('2d');
+const hbuf = new Uint32Array(N), himg = new ImageData(new Uint8ClampedArray(hbuf.buffer), W, H);
+const RAMP = ['#1a0b2e', '#5b1a6e', '#b5245a', '#f0602b', '#ffb81c', '#fff6c2'].map(abgr);
+const HEAT_LUT = new Uint32Array(256);
+for (let i = 0; i < 256; i++) {
+  const t = i / 255 * (RAMP.length - 1), k = Math.min(RAMP.length - 2, Math.floor(t)), f = t - k, a = RAMP[k], b = RAMP[k + 1];
+  const ch = sh => Math.round(((a >>> sh) & 255) * (1 - f) + ((b >>> sh) & 255) * f);
+  HEAT_LUT[i] = (0xFF000000 | (ch(16) << 16) | (ch(8) << 8) | ch(0)) >>> 0;
+}
+const HEAT_FREE = 0xFF120D0D, HEAT_REAL = 0xFF5A5A5A;
+let heat = false, heatAt = 0, hotspots = [];
+const BASE_PX = 0.01, BLK = 25;
+function heatVal(i) { return owner[i] && !real[i] ? pricePx[i] : 0; }
+let hLo = BASE_PX, hHi = PX_CAP;
+function buildHeat() {
+  // Skala an die aktuelle Verteilung anpassen (2.–98. Perzentil, logarithmisch), damit Unterschiede sichtbar bleiben
+  const smp = [];
+  for (let i = 0; i < N; i += 97) { const v = heatVal(i); if (v > 0) smp.push(v); }
+  smp.sort((a, b) => a - b);
+  if (smp.length > 20) { hLo = Math.max(1e-4, smp[Math.floor(smp.length * 0.02)]); hHi = Math.max(hLo * 1.5, smp[Math.floor(smp.length * 0.98)]); }
+  const lmin = Math.log(hLo), lspan = Math.log(hHi) - lmin;
+  for (let i = 0; i < N; i++) {
+    if (real[i]) { hbuf[i] = HEAT_REAL; continue; }
+    if (!owner[i]) { hbuf[i] = HEAT_FREE; continue; }
+    const t = (Math.log(Math.max(hLo, Math.min(hHi, pricePx[i]))) - lmin) / lspan;
+    hbuf[i] = HEAT_LUT[Math.round(t * 255)];
+  }
+  document.getElementById('lgMin').textContent = fmtS3(hLo);
+  document.getElementById('lgMax').textContent = fmtS3(hHi) + ' USDC';
+  hctx.putImageData(himg, 0, 0);
+  // Teuerste Viertel: Durchschnittspreis je 25 × 25 Block (nur Blöcke, die zu mind. 40 % bemalt sind)
+  const bl = [];
+  for (let by = 0; by < H; by += BLK) for (let bx = 0; bx < W; bx += BLK) {
+    let sum = 0, n = 0;
+    for (let y = by; y < by + BLK; y++) for (let x = bx; x < bx + BLK; x++) { const v = heatVal(y * W + x); if (v) { sum += v; n++; } }
+    if (n >= BLK * BLK * 0.4) bl.push({ x: bx, y: by, avg: sum / n });
+  }
+  bl.sort((a, b) => b.avg - a.avg);
+  hotspots = [];
+  for (const b of bl) { if (hotspots.every(h => Math.abs(h.x - b.x) > BLK * 3 || Math.abs(h.y - b.y) > BLK * 3)) hotspots.push(b); if (hotspots.length === 3) break; }
+  heatAt = performance.now();
+}
+function fmtS3(v) { return v.toLocaleString('de-DE', { minimumFractionDigits: 3, maximumFractionDigits: 3 }); }
+function setHeat(v) {
+  heat = v; const b = document.getElementById('bHeat');
+  b.classList.toggle('on', v); b.setAttribute('aria-pressed', v ? 'true' : 'false');
+  document.getElementById('legend').classList.toggle('on', v);
+  if (v) { buildHeat(); setFollow(false); fitGoal(); }
+}
+
 const cam = { s: 1, x: 0, y: 0 }, goal = { s: 1, x: 0, y: 0 };
 let follow = true, vw = 1, vh = 1, dpr = 1;
 function resize() { const b = stage.getBoundingClientRect(); vw = b.width; vh = b.height; dpr = Math.min(2, window.devicePixelRatio || 1); view.width = Math.round(vw * dpr); view.height = Math.round(vh * dpr); }
@@ -677,7 +735,8 @@ function draw() {
   ctx.fillStyle = '#08080B'; ctx.fillRect(0, 0, vw, vh);
   ctx.imageSmoothingEnabled = false;
   ctx.setTransform(dpr * cam.s, 0, 0, dpr * cam.s, -cam.x * cam.s * dpr, -cam.y * cam.s * dpr);
-  ctx.drawImage(off, 0, 0);
+  if (heat && performance.now() - heatAt > 1500) buildHeat();
+  ctx.drawImage(heat ? heatOff : off, 0, 0);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const sx = x => (x - cam.x) * cam.s, sy = y => (y - cam.y) * cam.s;
   ctx.strokeStyle = '#2A2A35'; ctx.lineWidth = 1; ctx.strokeRect(sx(0) - .5, sy(0) - .5, W * cam.s + 1, H * cam.s + 1);
@@ -688,6 +747,17 @@ function draw() {
     for (let x = x0; x <= x1; x++) { ctx.moveTo(sx(x), sy(y0)); ctx.lineTo(sx(x), sy(y1)); }
     for (let y = y0; y <= y1; y++) { ctx.moveTo(sx(x0), sy(y)); ctx.lineTo(sx(x1), sy(y)); }
     ctx.stroke();
+  }
+  if (heat) {
+    ctx.font = '700 12px "JetBrains Mono", monospace';
+    hotspots.forEach((h, i) => {
+      const x = sx(h.x), y = sy(h.y), w = BLK * cam.s;
+      ctx.strokeStyle = '#fff6c2'; ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.strokeRect(x - 2, y - 2, w + 4, w + 4); ctx.setLineDash([]);
+      const t = `#${i + 1} TEUERSTES VIERTEL · Ø ${fmt(h.avg)}/px`, tw = ctx.measureText(t).width + 14;
+      const lx = clamp(x - 2, 4, vw - tw - 4), ly = y - 24 < 4 ? y + w + 6 : y - 24;
+      ctx.fillStyle = '#fff6c2'; ctx.fillRect(lx, ly, tw, 20);
+      ctx.fillStyle = '#0D0D12'; ctx.fillText(t, lx + 7, ly + 15);
+    });
   }
   if (realList.length && cam.s >= 2) {
     ctx.strokeStyle = '#FFD23F'; ctx.lineWidth = 2;
@@ -747,7 +817,7 @@ function draw() {
 }
 function drawMini() {
   mctx.imageSmoothingEnabled = true;
-  mctx.drawImage(off, 0, 0, 150, 150);
+  mctx.drawImage(heat ? heatOff : off, 0, 0, 150, 150);
   const k = 150 / W;
   mctx.strokeStyle = '#FFD23F'; mctx.lineWidth = 1.5;
   mctx.strokeRect(cam.x * k, cam.y * k, vw / cam.s * k, vh / cam.s * k);
@@ -1018,6 +1088,8 @@ view.addEventListener('dblclick', e => { const b = stage.getBoundingClientRect()
 document.getElementById('bIn').onclick = () => { setFollow(false); zoomAt(1.8, vw / 2, vh / 2, false); };
 document.getElementById('bOut').onclick = () => { setFollow(false); zoomAt(1 / 1.8, vw / 2, vh / 2, false); };
 document.getElementById('bFit').onclick = () => { setFollow(false); fitGoal(); };
+document.getElementById('bHeat').onclick = () => setHeat(!heat);
+addEventListener('keydown', e => { if ((e.key === 'h' || e.key === 'H') && !e.target.closest('input,textarea')) setHeat(!heat); });
 document.getElementById('bFollow').onclick = () => setFollow(!follow);
 document.getElementById('introX').onclick = () => document.getElementById('intro').remove();
 mini.addEventListener('click', e => { const b = mini.getBoundingClientRect(); setFollow(false); flyTo((e.clientX - b.left) / b.width * W, (e.clientY - b.top) / b.height * H, Math.max(goal.s, 2)); });
@@ -1037,7 +1109,7 @@ function hover(lx, ly) {
   coordsEl.textContent = `x ${x} · y ${y} · ${cam.s.toFixed(1)}×`;
   if (cam.s < 2) { hideTip(); return; }
   const f = info(x, y);
-  tip.innerHTML = `<b style="color:${f.col}">${f.title}</b><br>(${x}, ${y}) · ${f.line}`;
+  tip.innerHTML = `<b style="color:${f.col}">${f.title}</b><br>(${x}, ${y}) · ${f.line}${heat ? `<br><b style="color:#ffb81c">${real[y * W + x] ? 'echt, unverkäuflich' : owner[y * W + x] ? fmt(heatVal(y * W + x)) + ' pro Pixel' : 'frei · ' + fmt(BASE_PX)}</b>` : ''}`;
   tip.style.display = 'block';
   tip.style.left = Math.min(lx + 16, vw - 270) + 'px'; tip.style.top = Math.min(ly + 16, vh - 80) + 'px';
 }
