@@ -7,7 +7,8 @@ import { verifyMessage } from 'viem';
 import { compile, toHex } from '../public/formel.js';
 import { SIZE, PAY_TO, readFresh, readCached, update, cleanAgent } from './_register.js';
 import { agentKonditionen } from './_publikum.js';
-import { buchen } from './_kasse.js';
+import { buchen, alarm } from './_kasse.js';
+import { claimName } from './_namen.js';
 
 export const MAX_SEITE = 32;               // Werke bis 32 × 32 Pixel
 export const FRIST_MS = 15 * 60_000;       // alle Teile innerhalb von 15 Minuten bezahlen
@@ -147,6 +148,8 @@ export async function verbuchen(id, nr, payer, tx) {
   if (r && r.ok && r.teil && r.teil.salon) {
     try { await buchen({ ...(r.teil.anteil || { erstverkauf: r.teil.betrag }), agent: r.o.agent, tx, art: 'werk' }); } catch (e) { console.error('Kassenbuch', e?.message); }
   }
+  if (r && r.fertig) await claimName(r.o.agent, payer);
+  if (r && r.abort) await alarm('order payment could not be booked', { order: id, part: nr, tx, reason: r.grund });
   return r;
 }
 async function verbuchenIntern(id, nr, payer, tx) {

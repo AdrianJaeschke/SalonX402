@@ -6,7 +6,7 @@ import { randomBytes } from 'node:crypto';
 // (Der Blob-Speicher allein lieferte kurz nach einem Schreibvorgang manchmal noch den alten Stand.)
 const R_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const R_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-const redis = R_URL && R_TOKEN ? new Redis({ url: R_URL, token: R_TOKEN }) : null;
+export const redis = R_URL && R_TOKEN ? new Redis({ url: R_URL, token: R_TOKEN }) : null;
 
 export const SIZE = 1000;
 export const T0 = Date.UTC(2026, 10, 19, 20, 0, 0);
@@ -15,7 +15,11 @@ export const AGENTS = ['sun-painter', 'pixel-gardener', 'gallery-agent-12', 'sta
 // Old (German) agent names, still used in stored applause
 export const AGENT_ALIAS = { 'sonnen-maler': 'sun-painter', 'pixel-gaertner': 'pixel-gardener', 'galerie-agent-12': 'gallery-agent-12', 'sterne-sammler': 'star-collector', 'wellen-agent': 'wave-agent', 'auktionator-x': 'auctioneer-x' };
 export const NETWORK = process.env.X402_NETWORK || 'eip155:84532'; // Base Sepolia (Testnetz)
-export const NETWORK_NAME = NETWORK === 'eip155:8453' ? 'Base' : 'Base Sepolia (testnet)';
+export const MAINNET = NETWORK === 'eip155:8453';
+export const NETWORK_NAME = MAINNET ? 'Base' : 'Base Sepolia (testnet)';
+export const EXPLORER = MAINNET ? 'https://basescan.org' : 'https://sepolia.basescan.org';
+// Everything that counts money is kept apart per network: mainnet starts with a clean register and ledger
+export const NS = MAINNET ? 'base:' : '';
 export const PAY_TO = (process.env.PAY_TO || '').trim();
 export const PRICE = process.env.PIXEL_PRICE || '$0.01';
 export const FACILITATOR = process.env.FACILITATOR_URL || 'https://x402.org/facilitator';
@@ -28,13 +32,19 @@ export const sleep = ms => new Promise(r => setTimeout(r, ms));
  * Lesen läuft über das CDN (kostenlos bei Cache-Treffern), geschrieben wird nur bei Käufen
  * und gebündeltem Applaus. So bleiben wir weit unter den Blob-Limits des Hobby-Plans.
  */
-const STATE = 'state.json';
+const STATE = MAINNET ? 'state-base.json' : 'state.json';
 let cache = null;
 export const empty = () => ({ v: 3, sales: [], ap: { epochs: {}, total: {} }, werke: [], auftraege: {}, fertig: {} });
 export function addClap(d, e, agent, n) {
   const ep = (d.ap.epochs[e] ||= {});
   ep[agent] = (ep[agent] || 0) + n;
   d.ap.total[agent] = (d.ap.total[agent] || 0) + n;
+}
+// Mainnet starts empty: no test purchases, but the audience's applause carries over
+async function freshMainnet() {
+  const d = empty();
+  try { const g = await get('state.json', { access: 'public', useCache: false }); if (g) { const t = await new Response(g.stream).json(); if (t.ap) d.ap = t.ap; } } catch {}
+  return d;
 }
 async function migrate() {
   // Einmalig: Daten aus der ersten Version (ein Blob pro Kauf/Applaus) einsammeln.
@@ -71,7 +81,7 @@ async function blobFresh() {
   for (let t = 0; t < 4; t++) {
     let h1;
     try { h1 = await head(STATE); }
-    catch (e) { if (e instanceof BlobNotFoundError) return { data: await migrate(), etag: null }; throw e; }
+    catch (e) { if (e instanceof BlobNotFoundError) return { data: MAINNET ? await freshMainnet() : await migrate(), etag: null }; throw e; }
     const g = await get(STATE, { access: 'public', useCache: false });
     if (!g) continue;
     const data = await new Response(g.stream).json();
@@ -82,7 +92,7 @@ async function blobFresh() {
 }
 export async function readFresh() {
   if (!redis) return blobFresh();
-  const want = Number(await redis.get('reg:ver')) || 0;
+  const want = Number(await redis.get(NS + 'reg:ver')) || 0;
   for (let t = 0; t < 12; t++) {
     const r = await blobFresh();
     if ((r.data.ver || 0) >= want) return r;
@@ -93,27 +103,27 @@ export async function readFresh() {
 async function lockedUpdate(mutate) {
   const me = 'L' + randomBytes(8).toString('hex');
   let ok = false;
-  for (let t = 0; t < 60 && !ok; t++) { ok = !!(await redis.set('reg:lock', me, { nx: true, px: 20000 })); if (!ok) await sleep(150); }
+  for (let t = 0; t < 60 && !ok; t++) { ok = !!(await redis.set(NS + 'reg:lock', me, { nx: true, px: 20000 })); if (!ok) await sleep(150); }
   if (!ok) throw new Error('Register busy, please retry');
   try {
     const { data } = await readFresh();
-    for (const n of NACHTRAG) if (!data.sales.some(s => s.x === n.x && s.y === n.y)) data.sales.push(n);
+    if (!MAINNET) for (const n of NACHTRAG) if (!data.sales.some(s => s.x === n.x && s.y === n.y)) data.sales.push(n);
     const res = mutate(data);
     if (res && res.abort) return res;
     data.ver = (data.ver || 0) + 1;
     await put(STATE, JSON.stringify(data), { access: 'public', addRandomSuffix: false, contentType: 'application/json', cacheControlMaxAge: 60, allowOverwrite: true });
-    await redis.set('reg:ver', data.ver);
+    await redis.set(NS + 'reg:ver', data.ver);
     cache = { data, at: Date.now() };
     return res || { ok: true };
   } finally {
-    if ((await redis.get('reg:lock')) === me) await redis.del('reg:lock');
+    if ((await redis.get(NS + 'reg:lock')) === me) await redis.del(NS + 'reg:lock');
   }
 }
 export async function update(mutate) {
   if (redis) return lockedUpdate(mutate);
   for (let t = 0; t < 6; t++) {
     const { data, etag } = await blobFresh();
-    for (const n of NACHTRAG) if (!data.sales.some(s => s.x === n.x && s.y === n.y)) data.sales.push(n);
+    if (!MAINNET) for (const n of NACHTRAG) if (!data.sales.some(s => s.x === n.x && s.y === n.y)) data.sales.push(n);
     const res = mutate(data);
     if (res && res.abort) return res;
     try {

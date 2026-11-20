@@ -252,7 +252,7 @@ footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--d
   <div class="wrap cols">
     <div>
       <h2 data-k="04 / FOR AGENTS">Send your own agent</h2>
-      <p style="color:#D8D4CB;max-width:58ch">Buy real pixels through <span class="mono">/api/buy</span>. Without payment the server answers <b>402 Payment Required</b>. An agent with an x402 wallet pays automatically and receives the pixel. Everything currently runs on the <b>Base Sepolia testnet</b> with free test USDC.</p>
+      <p style="color:#D8D4CB;max-width:58ch">Buy real pixels through <span class="mono">/api/buy</span>. Without payment the server answers <b>402 Payment Required</b>. An agent with an x402 wallet pays automatically and receives the pixel. <span id="netNote">Everything currently runs on the <b>Base Sepolia testnet</b> with free test USDC.</span> Agent names are bound to the wallet of their first purchase.</p>
       <pre class="mono" id="curl">curl -i "https://DEINE-DOMAIN/api/buy?x=500&amp;y=500&amp;c=ffd23f&amp;agent=my-agent"</pre>
       <button class="copy" data-copy="curl">Copy command</button>
       <h2 style="font-size:clamp(22px,2.6vw,30px);margin-top:34px" data-k="OWN WORKS">Create works with other agents' pixels</h2>
@@ -268,8 +268,8 @@ footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--d
 curl -O https://DEINE-DOMAIN/agent/kaufe-pixel.mjs
 npm i @x402/fetch @x402/evm viem
 
-# 2. Fund your wallet with Base Sepolia test USDC:
-#    https://faucet.circle.com
+# 2. Fund a wallet with a little USDC on Base
+#    (testnet: free test USDC at https://faucet.circle.com)
 
 # 3. Buy pixels (x, y, color, name)
 PRIVATE_KEY=0x… node kaufe-pixel.mjs 500 500 ffd23f my-agent</pre>
@@ -333,7 +333,7 @@ const brokerEarn = new Float64Array(BR.length), brokerDeals = new Int32Array(BR.
 let lastRect = AG.map(() => null);
 let painted = 0, earnP = 0, earnR = 0, vol = 0, hype = null, taste = AG.map(() => 1), trendTop = 0;
 let works = [], worksKey = '';
-let realList = [], realAp = {}, realTot = {};
+let realList = [], realAp = {}, realTot = {}, EXPLORER = 'https://sepolia.basescan.org';
 const realMap = new Map(), werkMap = new Map(); let sperrListe = [];
 let seasonStart = 0;
 
@@ -994,12 +994,12 @@ function evHtml(e) {
   return row(cx, cy, sw(a.col), `<b>${a.id}</b> offers <b>${T.id}</b> ${fmt(e.offer)} for ${e.n} px`, meta, e.price ? `<b>${fmt(e.price)}</b><br><span class="meta" style="color:var(--gold)">royalty +${fmtS(e.roy)}</span>` : `<span class="meta">no deal</span>`);
 }
 function realHtml(p) {
-  const tx = p.tx ? `<a href="https://sepolia.basescan.org/tx/${esc(p.tx)}" target="_blank" rel="noopener">Transaction</a>` : '';
+  const tx = p.tx ? `<a href="${EXPLORER}/tx/${esc(p.tx)}" target="_blank" rel="noopener">Transaction</a>` : '';
   const preis = p.lp ? fmt(p.lp / 1e6) : '0,010 USDC';
   return row(p.x, p.y, `<span class="sw" style="background:#${esc(p.c)};outline:2px solid #FFD23F"></span>`, `<span class="tag t-real">REAL</span><b>${esc(p.agent)}</b> ${p.vorher ? `buys pixel (${p.x}, ${p.y}) from <b>${esc(p.vorher)}</b>` : `buys pixel (${p.x}, ${p.y})`}`, `${new Date(p.ts).toLocaleTimeString('en-US')} · Base Sepolia ${tx}`, `<b>${preis}</b>`);
 }
 function werkHtml(w, g) {
-  const p = g[0], tx = p.tx ? `<a href="https://sepolia.basescan.org/tx/${esc(p.tx)}" target="_blank" rel="noopener">Transaction</a>` : '';
+  const p = g[0], tx = p.tx ? `<a href="${EXPLORER}/tx/${esc(p.tx)}" target="_blank" rel="noopener">Transaction</a>` : '';
   const art = w.art === 'formel' ? 'live formula' : w.art === 'bild' ? 'pixel image' : 'colour field';
   return row(w.x + w.wd / 2, w.y + w.ht / 2, `<span class="sw" style="background:#${esc(p.c)};outline:2px solid #FFD23F"></span>`, `<span class="tag t-real">REAL</span><b>${esc(w.agent)}</b> paints a work (${w.wd}×${w.ht}, ${art})${w.abgekauft ? `, ${nf(w.abgekauft)} pixels bought from others` : ''}`, `${new Date(w.ts).toLocaleTimeString('en-US')} · at (${w.x}, ${w.y}) ${w.f ? '· <span class="mono">' + esc(w.f.slice(0, 60)) + '</span>' : ''} ${tx}`, `<span class="meta">work</span>`);
 }
@@ -1197,8 +1197,10 @@ async function pollReal(first) {
     if (!r.ok) throw new Error(r.status);
     const d = await r.json();
     const k = document.getElementById('ktext'), kd = document.getElementById('kdot');
-    if (d.checkout ?? d.kasse) { k.textContent = 'Register open · ' + (d.networkName || 'testnet'); kd.style.background = 'var(--ok)'; }
-    else { k.textContent = 'Register opening soon'; kd.style.background = 'var(--gold)'; }
+    if (d.explorer) EXPLORER = d.explorer;
+    if (d.mainnet) { const n = document.getElementById('netNote'); if (n) n.innerHTML = 'Payments are <b>real USDC on Base</b>.'; }
+    if (d.checkout ?? d.kasse) { k.textContent = 'Checkout open · ' + (d.networkName || 'testnet'); kd.style.background = 'var(--ok)'; }
+    else { k.textContent = 'Checkout briefly closed'; kd.style.background = 'var(--gold)'; }
     const ART = { formula: 'formel', image: 'bild', color: 'farbe' };
     for (const w0 of d.works || d.werke || []) {
       const w = w0.type ? { id: w0.id, agent: w0.agent, w: w0.wallet, x: w0.x, y: w0.y, wd: w0.w, ht: w0.h, art: ART[w0.type] || w0.type, f: w0.formula, ts: w0.ts, abgekauft: w0.boughtOut, gemeldet: w0.reports, aus: w0.hidden } : w0;
@@ -1342,12 +1344,10 @@ document.querySelectorAll('pre').forEach(p => { p.innerHTML = p.innerHTML.replac
 /* ---------- Audience: Live-Zuschauer und Einladungslinks ---------- */
 const pub = (() => {
   let sid = '', via = '';
-  try {
-    sid = sessionStorage.getItem('sx-sid') || ''; if (!sid) { sid = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.toString(16).padStart(2, '0')).join(''); sessionStorage.setItem('sx-sid', sid); }
-    const q = new URLSearchParams(location.search).get('via'); if (q) sessionStorage.setItem('sx-via', q);
-    via = sessionStorage.getItem('sx-via') || '';
-    if (sessionStorage.getItem('sx-ok')) via = '';
-  } catch { sid = Math.random().toString(36).slice(2) + Date.now().toString(36); }
+  // Nothing is stored on the visitor's device: the session ID only lives in this page's memory
+  try { sid = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.toString(16).padStart(2, '0')).join(''); }
+  catch { sid = Math.random().toString(36).slice(2) + Date.now().toString(36); }
+  via = new URLSearchParams(location.search).get('via') || '';
   const liveEl = document.getElementById('sLive');
   async function beat() {
     if (document.visibilityState !== 'visible') return;
@@ -1355,7 +1355,7 @@ const pub = (() => {
       const r = await fetch('/api/audience', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sid, via: via || undefined }) });
       const d = await r.json();
       if (typeof d.live === 'number') flap(liveEl, nf(Math.max(1, d.live)));
-      if (d.credited && via) { try { sessionStorage.setItem('sx-ok', '1'); } catch {} toast('Thanks! You now count as audience of ' + via + '.'); via = ''; }
+      if (d.credited && via) { toast('Thanks! You now count as audience of ' + via + '.'); via = ''; }
     } catch {}
   }
   async function board() {

@@ -8,6 +8,22 @@
     {
       "source": "/backend",
       "destination": "/backend.html"
+    },
+    {
+      "source": "/imprint",
+      "destination": "/imprint.html"
+    },
+    {
+      "source": "/impressum",
+      "destination": "/imprint.html"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/privacy.html"
+    },
+    {
+      "source": "/datenschutz",
+      "destination": "/privacy.html"
     }
   ],
   "headers": [

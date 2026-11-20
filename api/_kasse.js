@@ -1,12 +1,8 @@
 // Kassenbuch der Künstlerin: echte Einnahmen und Tantiemen. Liegt nur in Redis, nicht im öffentlichen Register.
 // Abrufbar nur mit einer Signatur der Salon-Wallet (siehe /backend).
-import { Redis } from '@upstash/redis';
 import { verifyMessage } from 'viem';
-import { PAY_TO } from './_register.js';
-
-const R_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-const R_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-const redis = R_URL && R_TOKEN ? new Redis({ url: R_URL, token: R_TOKEN }) : null;
+import { PAY_TO, redis, NS } from './_register.js';
+const K = NS + 'kasse', LOG = NS + 'kasse:log', ALARM = NS + 'alarm';
 
 // betraege in Millionstel USDC: { erstverkauf, tantiemen, rueckkauf }
 export async function buchen({ erstverkauf = 0, tantiemen = 0, rueckkauf = 0, agent = '', tx = '', art = '' }) {
@@ -14,12 +10,12 @@ export async function buchen({ erstverkauf = 0, tantiemen = 0, rueckkauf = 0, ag
   const summe = erstverkauf + tantiemen + rueckkauf;
   if (summe <= 0) return;
   const p = redis.pipeline();
-  if (erstverkauf) p.hincrby('kasse', 'erstverkauf', erstverkauf);
-  if (tantiemen) p.hincrby('kasse', 'tantiemen', tantiemen);
-  if (rueckkauf) p.hincrby('kasse', 'rueckkauf', rueckkauf);
-  p.hincrby('kasse', 'zahlungen', 1);
-  p.lpush('kasse:log', JSON.stringify({ ts: Date.now(), art, agent, tx, erstverkauf, tantiemen, rueckkauf }));
-  p.ltrim('kasse:log', 0, 299);
+  if (erstverkauf) p.hincrby(K, 'erstverkauf', erstverkauf);
+  if (tantiemen) p.hincrby(K, 'tantiemen', tantiemen);
+  if (rueckkauf) p.hincrby(K, 'rueckkauf', rueckkauf);
+  p.hincrby(K, 'zahlungen', 1);
+  p.lpush(LOG, JSON.stringify({ ts: Date.now(), art, agent, tx, erstverkauf, tantiemen, rueckkauf }));
+  p.ltrim(LOG, 0, 299);
   await p.exec();
 }
 
@@ -30,8 +26,15 @@ export async function kasseLesen({ ts, signatur }) {
   const ok = PAY_TO && await verifyMessage({ address: PAY_TO, message: backendNachricht(ts), signature: signatur }).catch(() => false);
   if (!ok) return { error: 'Only the salon wallet has access', status: 401 };
   if (!redis) return { error: 'Ledger not connected', status: 503 };
-  const [k, log] = await Promise.all([redis.hgetall('kasse'), redis.lrange('kasse:log', 0, 99)]);
+  const [k, log, alarm] = await Promise.all([redis.hgetall(K), redis.lrange(LOG, 0, 99), redis.lrange(ALARM, 0, 49)]);
   const n = v => Number(v || 0);
   const summe = { erstverkauf: n(k?.erstverkauf), tantiemen: n(k?.tantiemen), rueckkauf: n(k?.rueckkauf), zahlungen: n(k?.zahlungen) };
-  return { ok: true, summe: { ...summe, gesamt: summe.erstverkauf + summe.tantiemen + summe.rueckkauf }, log: log.map(x => (typeof x === 'string' ? JSON.parse(x) : x)) };
+  return { ok: true, summe: { ...summe, gesamt: summe.erstverkauf + summe.tantiemen + summe.rueckkauf }, log: log.map(x => (typeof x === 'string' ? JSON.parse(x) : x)), alarms: alarm.map(x => (typeof x === 'string' ? JSON.parse(x) : x)) };
+}
+
+// Alarm: something went wrong around money (payment arrived but booking failed, facilitator down …)
+export async function alarm(what, detail = {}) {
+  console.error('ALARM', what, JSON.stringify(detail));
+  if (!redis) return;
+  try { const p = redis.pipeline(); p.lpush(ALARM, JSON.stringify({ ts: Date.now(), what, ...detail })); p.ltrim(ALARM, 0, 199); await p.exec(); } catch {}
 }

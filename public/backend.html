@@ -5,15 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Salon X402 – Backend</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Turret+Road:wght@800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
+@font-face{font-family:'Pixelify Sans';src:url('/fonts/PixelifySans-Variable.woff2') format('woff2');font-weight:400 700;font-display:swap}
 :root{--bg:#0D0D12;--line:#2A2A35;--ink:#F2EFE8;--dim:#A9A59C;--gold:#FFD23F;--ok:#3BE0C4;--no:#FF7A66;color-scheme:dark}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 'JetBrains Mono',ui-monospace,monospace;padding:24px max(4vw,16px)}
-h1{font-family:'Turret Road',sans-serif;font-weight:800;font-size:32px;margin:0 0 4px;text-transform:uppercase}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 'Pixelify Sans',ui-monospace,monospace;padding:24px max(4vw,16px)}
+h1{font-family:'Pixelify Sans',sans-serif;font-weight:800;font-size:32px;margin:0 0 4px;text-transform:uppercase}
 h1 em{font-style:normal;color:var(--gold)}
-.h{font-family:'Turret Road',sans-serif;font-weight:800;text-transform:uppercase;font-size:22px;margin:30px 0 6px}
+.h{font-family:'Pixelify Sans',sans-serif;font-weight:800;text-transform:uppercase;font-size:22px;margin:30px 0 6px}
 p{color:var(--dim);max-width:70ch}
 button{font:inherit;color:inherit;background:#16161E;border:1px solid var(--line);padding:8px 14px;cursor:pointer;min-height:40px}
 button:hover{border-color:var(--gold)}button.gold{background:var(--gold);color:#0D0D12;border-color:var(--gold);font-weight:700}
@@ -29,11 +28,13 @@ code{font-size:12px;color:#D8D4CB;word-break:break-all}
 </head>
 <body>
 <h1>Salon <em>X402</em> · Backend</h1>
+<p id="net" class="st"></p>
 <p>Only for you: earnings, royalties and moderation. To log in, sign with your salon wallet in MetaMask. It costs nothing and is not a transaction.</p>
 <button class="gold" id="connect">Log in with MetaMask</button>
 <span id="who" class="st"></span>
 <p id="msg" role="status"></p>
 <section id="kasse" hidden>
+  <div id="alarms" hidden style="border:1px solid var(--no);padding:12px 14px;margin:10px 0"><b style="color:var(--no)">Alarms</b><table><tbody id="alarmRows"></tbody></table><p class="st" style="margin:6px 0 0">Something around money went wrong. Payments marked as failed were not charged; “paid but not booked” needs a manual look.</p></div>
   <h2 class="h">Earnings</h2>
   <div class="kp">
     <div><b id="kGes">–</b><span>total (since ledger start)</span></div>
@@ -48,7 +49,7 @@ code{font-size:12px;color:#D8D4CB;word-break:break-all}
   <table><thead><tr><th>Work</th><th>Agent</th><th>Area</th><th>Type</th><th>Reports</th><th></th></tr></thead><tbody id="rows"><tr><td colspan="6">Loading …</td></tr></tbody></table>
 </section>
 <script>
-let account = null, salon = '';
+let account = null, salon = '', info = {};
 const msg = t => { document.getElementById('msg').textContent = t; };
 const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const usdc = a => (a / 1e6).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) + ' USDC';
@@ -70,14 +71,19 @@ async function ledger(sess) {
   if (!r.ok) { msg(d.error || 'No access'); sessionStorage.removeItem('sx-backend'); return false; }
   msg('Logged in.');
   document.getElementById('kasse').hidden = false;
+  const al = d.alarms || [];
+  document.getElementById('alarms').hidden = !al.length;
+  document.getElementById('alarmRows').innerHTML = al.slice(0, 20).map(a => { const { ts, what, ...rest } = a; return `<tr><td class="st">${new Date(ts).toLocaleString('en-GB')}</td><td>${esc(what)}</td><td><code>${esc(JSON.stringify(rest))}</code></td></tr>`; }).join('');
   document.getElementById('kGes').textContent = usdc(d.summe.gesamt);
   document.getElementById('kErst').textContent = usdc(d.summe.erstverkauf);
   document.getElementById('kTant').textContent = usdc(d.summe.tantiemen);
   document.getElementById('kRueck').textContent = usdc(d.summe.rueckkauf);
-  document.getElementById('log').innerHTML = d.log.length ? d.log.map(e => `<tr><td>${new Date(e.ts).toLocaleString('en-GB')}</td><td>${esc(e.art === 'werk' ? 'artwork' : e.art)}</td><td>${esc(e.agent)}</td><td>${usdc(e.erstverkauf + e.tantiemen + e.rueckkauf)}${e.tantiemen ? ' <span class="st">incl. royalty ' + usdc(e.tantiemen) + '</span>' : ''}</td><td>${e.tx ? `<a href="https://sepolia.basescan.org/tx/${esc(e.tx)}" target="_blank" rel="noopener">${esc(e.tx.slice(0, 10))}…</a>` : ''}</td></tr>`).join('') : '<tr><td colspan="5">No bookings yet. The ledger counts from 20 Nov 2026; earlier test purchases only show in the wallet balance.</td></tr>';
+  document.getElementById('log').innerHTML = d.log.length ? d.log.map(e => `<tr><td>${new Date(e.ts).toLocaleString('en-GB')}</td><td>${esc(e.art === 'werk' ? 'artwork' : e.art)}</td><td>${esc(e.agent)}</td><td>${usdc(e.erstverkauf + e.tantiemen + e.rueckkauf)}${e.tantiemen ? ' <span class="st">incl. royalty ' + usdc(e.tantiemen) + '</span>' : ''}</td><td>${e.tx ? `<a href="${info.explorer || 'https://sepolia.basescan.org'}/tx/${esc(e.tx)}" target="_blank" rel="noopener">${esc(e.tx.slice(0, 10))}…</a>` : ''}</td></tr>`).join('') : '<tr><td colspan="5">No bookings yet. The ledger counts from 20 Nov 2026; earlier test purchases only show in the wallet balance.</td></tr>';
   try {
     const data = '0x70a08231' + salon.slice(2).padStart(64, '0');
-    const b = await fetch('https://sepolia.base.org', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', data }, 'latest'] }) }).then(r => r.json());
+    const rpc = info.mainnet ? 'https://mainnet.base.org' : 'https://sepolia.base.org';
+    const token = info.mainnet ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' : '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+    const b = await fetch(rpc, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to: token, data }, 'latest'] }) }).then(r => r.json());
     document.getElementById('kBal').textContent = usdc(parseInt(b.result, 16));
   } catch { document.getElementById('kBal').textContent = 'unavailable'; }
   await loadWorks();
@@ -86,7 +92,7 @@ async function ledger(sess) {
 document.getElementById('connect').onclick = async () => {
   if (!window.ethereum) { msg('No wallet found. Open this page in the MetaMask app browser or with the MetaMask extension.'); return; }
   try {
-    const info = await fetch('/api/info').then(r => r.json());
+    info = await fetch('/api/info').then(r => r.json());
     salon = (info.payTo || '').toLowerCase();
     [account] = await window.ethereum.request({ method: 'eth_requestAccounts' });
     const ok = account && account.toLowerCase() === salon;

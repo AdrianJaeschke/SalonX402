@@ -5,7 +5,8 @@ import { HTTPFacilitatorClient } from '@x402/core/server';
 import { ExactEvmScheme } from '@x402/evm/exact/server';
 import { z } from 'zod';
 import { agentKonditionen } from './_publikum.js';
-import { buchen } from './_kasse.js';
+import { buchen, alarm } from './_kasse.js';
+import { payerFromPayload, nameFree, claimName } from './_namen.js';
 import { planen, speichern, laden, pruefen, verbuchen, oeffentlich, usdc, ask, MAX_SEITE, preisSetzen, preisNachricht } from './_werke.js';
 import { SIZE, NETWORK, NETWORK_NAME, PAY_TO, PRICE, FACILITATOR, KASSE_OFFEN, HAS_BLOB, readCached, readFresh, recordSale, cleanAgent } from './_register.js';
 
@@ -36,7 +37,7 @@ async function teilWrapper(price, payTo) {
       accepts,
       resource: { url: 'mcp://salon-x402/pay_order_part', description: 'One part of a Salon x402 artwork order', mimeType: 'application/json' },
       hooks: {
-        onBeforeExecution: async ({ arguments: a }) => { try { await pruefen(a.order_id, a.part, true); return true; } catch { return false; } },
+        onBeforeExecution: async ({ arguments: a, paymentPayload }) => { try { const { o } = await pruefen(a.order_id, a.part, true); return await nameFree(o.agent, payerFromPayload(paymentPayload)); } catch { return false; } },
         onAfterSettlement: async ({ arguments: a, settlement }) => {
           try { await verbuchen(a.order_id, a.part, settlement?.payer || '', settlement?.transaction || ''); }
           catch (e) { console.error('MCP: Teil verbuchen', a, e?.message); }
@@ -57,7 +58,8 @@ async function paidWrapper(price = PRICE) {
       resource: { url: 'mcp://salon-x402/buy_pixel', description: 'One pixel on the Salon x402 canvas', mimeType: 'application/json' },
       hooks: {
         // vor der Abbuchung: Pixel noch frei?
-        onBeforeExecution: async ({ arguments: a }) => {
+        onBeforeExecution: async ({ arguments: a, paymentPayload }) => {
+          if (!(await nameFree(cleanAgent(a.agent), payerFromPayload(paymentPayload)))) return false;
           const { data } = await readFresh();
           return !data.sales.some(s => s.x === a.x && s.y === a.y);
         },
@@ -66,7 +68,8 @@ async function paidWrapper(price = PRICE) {
           try {
             const lp = (await agentKonditionen(a.agent)).atomic;
             const res = await recordSale({ x: a.x, y: a.y, c: String(a.color).replace('#', '').toLowerCase(), agent: cleanAgent(a.agent) }, settlement?.transaction || '', settlement?.payer || '', lp);
-            if (!(res && res.abort)) await buchen({ erstverkauf: lp, agent: cleanAgent(a.agent), tx: settlement?.transaction || '', art: 'pixel (MCP)' }).catch(() => {});
+            if (!(res && res.abort)) { await buchen({ erstverkauf: lp, agent: cleanAgent(a.agent), tx: settlement?.transaction || '', art: 'pixel (MCP)' }).catch(() => {}); await claimName(cleanAgent(a.agent), settlement?.payer); }
+            else await alarm('MCP: paid pixel already taken', { x: a.x, y: a.y, tx: settlement?.transaction });
             if (res && res.abort) console.error('MCP: Doppelkauf nach Zahlung', a);
           } catch (e) { console.error('MCP: Register-Fehler', a, e?.message); }
         }
