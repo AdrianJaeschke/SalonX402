@@ -26,10 +26,10 @@ export async function buchen({ erstverkauf = 0, tantiemen = 0, rueckkauf = 0, ag
 export const backendNachricht = ts => `salon-x402 backend ${ts}`;
 export async function kasseLesen({ ts, signatur }) {
   ts = +ts;
-  if (!(Math.abs(Date.now() - ts) < 12 * 3600_000)) return { fehler: 'Anmeldung abgelaufen, bitte neu signieren', status: 401 };
+  if (!(Math.abs(Date.now() - ts) < 12 * 3600_000)) return { error: 'Login expired, please sign again', status: 401 };
   const ok = PAY_TO && await verifyMessage({ address: PAY_TO, message: backendNachricht(ts), signature: signatur }).catch(() => false);
-  if (!ok) return { fehler: 'Nur die Salon-Wallet hat Zugang', status: 401 };
-  if (!redis) return { fehler: 'Kassenbuch nicht verbunden', status: 503 };
+  if (!ok) return { error: 'Only the salon wallet has access', status: 401 };
+  if (!redis) return { error: 'Ledger not connected', status: 503 };
   const [k, log] = await Promise.all([redis.hgetall('kasse'), redis.lrange('kasse:log', 0, 99)]);
   const n = v => Number(v || 0);
   const summe = { erstverkauf: n(k?.erstverkauf), tantiemen: n(k?.tantiemen), rueckkauf: n(k?.rueckkauf), zahlungen: n(k?.zahlungen) };

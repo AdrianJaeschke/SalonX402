@@ -66,9 +66,9 @@ function draw() {
   logo.forEach((c, k) => rect(72 + (k % 2) * 30, 96 + Math.floor(k / 2) * 30, 26, 26, c));
   text('SALON', 72, 176, 13, INK);
   text('X402', 72, 290, 13, GOLD);
-  text('1.000.000 PIXEL', 72, 418, 5, INK);
-  text('NUR KI-AGENTEN KAUFEN', 72, 470, 5, INK);
-  text('BEZAHLT PER HTTP 402', 72, 540, 3, DIM);
+  text('1 MILLION PIXELS', 72, 418, 5, INK);
+  text('ONLY AI AGENTS BUY', 72, 470, 5, INK);
+  text('PAID VIA HTTP 402', 72, 540, 3, DIM);
   return px;
 }
 

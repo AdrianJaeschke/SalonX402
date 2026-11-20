@@ -39,19 +39,19 @@ function farben(spec, wd, ht, x, y) {
   const n = wd * ht;
   if (spec.formel) {
     let f;
-    try { f = compile(String(spec.formel)); } catch (e) { throw new Fehler('Formel ungültig: ' + e.message); }
+    try { f = compile(String(spec.formel)); } catch (e) { throw new Fehler('Invalid formula: ' + e.message); }
     let out = '';
     for (let j = 0; j < ht; j++) for (let i = 0; i < wd; i++) out += toHex(f(x + i, y + j, i, j, wd, ht, 0));
     return { art: 'formel', f: String(spec.formel).trim(), c: out };
   }
   if (spec.pixel != null) {
     const arr = Array.isArray(spec.pixel) ? spec.pixel.map(v => String(v).replace('#', '')) : String(spec.pixel).replace(/[#,\s]/g, '').match(/.{1,6}/g) || [];
-    if (arr.length !== n) throw new Fehler(`pixel braucht genau ${n} Farben (${wd} × ${ht}, zeilenweise), bekommen: ${arr.length}`);
-    if (!arr.every(v => /^[0-9a-fA-F]{6}$/.test(v))) throw new Fehler('pixel: nur Hexfarben wie ffd23f');
+    if (arr.length !== n) throw new Fehler(`pixels needs exactly ${n} colors (${wd} × ${ht}, row by row), got: ${arr.length}`);
+    if (!arr.every(v => /^[0-9a-fA-F]{6}$/.test(v))) throw new Fehler('pixels: hex colors only, like ffd23f');
     return { art: 'bild', c: arr.join('').toLowerCase() };
   }
   const c = String(spec.farbe || spec.c || '').replace('#', '');
-  if (!/^[0-9a-fA-F]{6}$/.test(c)) throw new Fehler('Gib pixel (Hexfarben), formel oder farbe an');
+  if (!/^[0-9a-fA-F]{6}$/.test(c)) throw new Fehler('Give pixels (hex colors), formula or color');
   return { art: 'farbe', c: c.toLowerCase().repeat(n) };
 }
 
@@ -60,9 +60,9 @@ export async function planen(spec) {
   const x = Number.parseInt(spec.x, 10), y = Number.parseInt(spec.y, 10);
   const wd = Number.parseInt(spec.w ?? spec.width ?? 1, 10), ht = Number.parseInt(spec.h ?? spec.height ?? 1, 10);
   if (![x, y, wd, ht].every(Number.isInteger) || x < 0 || y < 0 || wd < 1 || ht < 1 || wd > MAX_SEITE || ht > MAX_SEITE || x + wd > SIZE || y + ht > SIZE)
-    throw new Fehler(`Fläche ungültig: x, y ab 0, w und h von 1 bis ${MAX_SEITE}, alles innerhalb von 1000 × 1000`);
+    throw new Fehler(`Invalid area: x, y from 0, w and h from 1 to ${MAX_SEITE}, all inside 1000 × 1000`);
   const agent = cleanAgent(spec.agent);
-  const bild = farben(spec, wd, ht, x, y);
+  const bild = farben({ ...spec, formel: spec.formel ?? spec.formula, pixel: spec.pixel ?? spec.pixels, farbe: spec.farbe ?? spec.color }, wd, ht, x, y);
   const d = await readCached();
   const idx = index(d), sperren = aktiveSperren(d), versteckt = new Set((d.werke || []).filter(w => w.aus).map(w => w.id));
   const frei = (await agentKonditionen(agent)).atomic;
@@ -73,7 +73,7 @@ export async function planen(spec) {
   const snap = [];
   for (let j = 0; j < ht; j++) for (let i = 0; i < wd; i++) {
     const k = (y + j) * SIZE + x + i;
-    if (sperren.has(k)) throw new Fehler(`Pixel (${x + i}, ${y + j}) steckt gerade in einem anderen bezahlten Auftrag. In ein paar Minuten nochmal versuchen.`, 409);
+    if (sperren.has(k)) throw new Fehler(`Pixel (${x + i}, ${y + j}) is locked by another paid order. Try again in a few minutes.`, 409);
     const s = idx.get(k);
     if (!s) { add(SALON, frei); anteil.erstverkauf += frei; nFrei++; snap.push([k, 0, 0]); continue; }
     const a = ask(s), w = wallet(s.w);
@@ -81,7 +81,7 @@ export async function planen(spec) {
     if (!w || w === SALON || (s.wk && versteckt.has(s.wk))) { add(SALON, a); anteil.rueckkauf += a; } else { add(w, a - t); add(SALON, t); anteil.tantiemen += t; }
     nAbkauf++; snap.push([k, s.w || '', a]);
   }
-  if (teile.size > 6) throw new Fehler('Zu viele verschiedene Besitzer in dieser Fläche (max. 5). Bitte kleiner wählen.');
+  if (teile.size > 6) throw new Fehler('Too many different owners in this area (max. 5). Please choose a smaller area.');
   // Salon-Teil zuerst, dann die Besitzer
   const liste = [...teile].sort((p, q) => (p[0] === SALON ? -1 : q[0] === SALON ? 1 : 0)).filter(([, b]) => b > 0);
   const id = randomBytes(6).toString('hex');
@@ -94,13 +94,14 @@ export async function planen(spec) {
 
 export function oeffentlich(o, base = '') {
   const offen = o.teile.filter(t => !t.bezahlt);
+  const type = { formel: 'formula', bild: 'image', farbe: 'color' }[o.art] || o.art;
   return {
-    auftrag: o.id, agent: o.agent, flaeche: { x: o.x, y: o.y, w: o.wd, h: o.ht }, art: o.art, ...(o.f ? { formel: o.f } : {}),
-    freiePixel: o.nFrei, abgekauftePixel: o.nAbkauf, frist: new Date(o.frist).toISOString(),
-    gesamt: usdc(o.teile.reduce((a, t) => a + t.betrag, 0)) + ' USDC',
-    teile: o.teile.map(t => ({ teil: t.nr, an: t.salon ? 'Salon (freie Pixel + 10 % Tantieme)' : t.an, betrag: usdc(t.betrag) + ' USDC', bezahlt: t.bezahlt, ...(t.tx ? { tx: t.tx } : {}), ...(!t.bezahlt ? { zahlen: `${base}/api/auftrag/zahlen?id=${o.id}&teil=${t.nr}` } : {}) })),
-    status: o.fertig ? 'fertig' : offen.length === o.teile.length ? 'offen' : 'teilweise bezahlt',
-    hinweis: o.fertig ? 'Das Werk hängt auf der Leinwand.' : 'Bezahle jeden offenen Teil per x402 (GET auf die zahlen-URL). Erst wenn alle Teile bezahlt sind, gehört dir die Fläche. Nicht bezahlte Aufträge verfallen nach Ablauf der Frist; bereits bezahlte Teile bleiben beim Empfänger.'
+    order: o.id, agent: o.agent, area: { x: o.x, y: o.y, w: o.wd, h: o.ht }, type, ...(o.f ? { formula: o.f } : {}),
+    freePixels: o.nFrei, boughtPixels: o.nAbkauf, deadline: new Date(o.frist).toISOString(),
+    total: usdc(o.teile.reduce((a, t) => a + t.betrag, 0)) + ' USDC',
+    parts: o.teile.map(t => ({ part: t.nr, to: t.salon ? 'salon (free pixels + 10 % royalty)' : t.an, amount: usdc(t.betrag) + ' USDC', paid: t.bezahlt, ...(t.tx ? { tx: t.tx } : {}), ...(!t.bezahlt ? { pay: `${base}/api/order/pay?id=${o.id}&part=${t.nr}` } : {}) })),
+    status: o.fertig ? 'complete' : offen.length === o.teile.length ? 'open' : 'partially paid',
+    note: o.fertig ? 'The work hangs on the canvas.' : 'Pay every open part via x402 (GET its pay URL). The area is yours once all parts are paid. Unpaid orders expire at the deadline; parts already paid stay with their recipients.'
   };
 }
 
@@ -123,19 +124,19 @@ export async function laden(id, frisch) {
 // Vor einer Zahlung: ist der Auftrag noch gültig, hat sich an den Pixeln nichts geändert?
 export async function pruefen(id, nr, frisch) {
   const o = await laden(id, frisch);
-  if (!o) throw new Fehler('Auftrag nicht gefunden oder abgelaufen. Lege einen neuen an: POST /api/auftrag', 404);
-  if (o.fertig) throw new Fehler('Auftrag ist schon fertig', 409);
-  if (o.frist < Date.now()) throw new Fehler('Frist abgelaufen. Lege einen neuen Auftrag an.', 410);
+  if (!o) throw new Fehler('Order not found or expired. Create a new one: POST /api/order', 404);
+  if (o.fertig) throw new Fehler('Order is already complete', 409);
+  if (o.frist < Date.now()) throw new Fehler('Deadline passed. Create a new order.', 410);
   const t = o.teile.find(t => t.nr === Number(nr));
-  if (!t) throw new Fehler('Diesen Teil gibt es nicht', 404);
-  if (t.bezahlt) throw new Fehler('Dieser Teil ist schon bezahlt', 409);
+  if (!t) throw new Fehler('This part does not exist', 404);
+  if (t.bezahlt) throw new Fehler('This part is already paid', 409);
   const d = frisch ? (await readFresh()).data : await readCached();
   const idx = index(d), sperren = aktiveSperren(d, o.id);
   for (const [k, w, a] of o.snap) {
-    if (sperren.has(k)) throw new Fehler('Ein Pixel steckt inzwischen in einem anderen Auftrag', 409);
+    if (sperren.has(k)) throw new Fehler('A pixel is now locked by another order', 409);
     const s = idx.get(k);
-    if (!w && !a) { if (s) throw new Fehler(`Pixel (${k % SIZE}, ${Math.floor(k / SIZE)}) wurde inzwischen verkauft. Lege einen neuen Auftrag an.`, 409); continue; }
-    if (!s || (s.w || '') !== w || ask(s) !== a) throw new Fehler(`Besitzer oder Preis von Pixel (${k % SIZE}, ${Math.floor(k / SIZE)}) hat sich geändert. Lege einen neuen Auftrag an.`, 409);
+    if (!w && !a) { if (s) throw new Fehler(`Pixel (${k % SIZE}, ${Math.floor(k / SIZE)}) has been sold meanwhile. Create a new order.`, 409); continue; }
+    if (!s || (s.w || '') !== w || ask(s) !== a) throw new Fehler(`Owner or price of pixel (${k % SIZE}, ${Math.floor(k / SIZE)}) has changed. Create a new order.`, 409);
   }
   return { o, t };
 }
@@ -180,33 +181,33 @@ async function verbuchenIntern(id, nr, payer, tx) {
 }
 
 // Besitzer setzt seinen Verkaufspreis (signierte Nachricht, kein Passwort nötig)
-export const preisNachricht = (x, y, w, h, atomic, ts) => `salon-x402 preis ${x},${y},${w},${h} ${atomic} ${ts}`;
+export const preisNachricht = (x, y, w, h, atomic, ts) => `salon-x402 price ${x},${y},${w},${h} ${atomic} ${ts}`;
 export async function preisSetzen(b) {
   const x = +b.x, y = +b.y, w = +(b.w ?? 1), h = +(b.h ?? 1), ts = +b.ts;
-  const atomic = Math.round(parseFloat(String(b.preis).replace('$', '')) * 1e6);
+  const atomic = Math.round(parseFloat(String(b.price ?? b.preis).replace('$', '')) * 1e6);
   const wal = wallet(b.wallet);
-  if (![x, y, w, h].every(Number.isInteger) || w < 1 || h < 1 || w > 100 || h > 100) throw new Fehler('Fläche ungültig (max. 100 × 100)');
-  if (!(atomic >= MIN_PREIS && atomic <= MAX_PREIS)) throw new Fehler('preis zwischen 0.001 und 1000 USDC');
-  if (!wal) throw new Fehler('wallet fehlt');
-  if (!(Math.abs(Date.now() - ts) < 600_000)) throw new Fehler('ts (Millisekunden) muss aktuell sein, höchstens 10 Minuten alt');
-  const ok = await verifyMessage({ address: wal, message: preisNachricht(x, y, w, h, atomic, ts), signature: b.signatur || b.signature }).catch(() => false);
-  if (!ok) throw new Fehler('Signatur passt nicht zur Wallet. Signiere genau: ' + preisNachricht(x, y, w, h, atomic, ts), 401);
+  if (![x, y, w, h].every(Number.isInteger) || w < 1 || h < 1 || w > 100 || h > 100) throw new Fehler('Invalid area (max. 100 × 100)');
+  if (!(atomic >= MIN_PREIS && atomic <= MAX_PREIS)) throw new Fehler('price must be between 0.001 and 1000 USDC');
+  if (!wal) throw new Fehler('wallet missing');
+  if (!(Math.abs(Date.now() - ts) < 600_000)) throw new Fehler('ts (milliseconds) must be current, at most 10 minutes old');
+  const ok = await verifyMessage({ address: wal, message: preisNachricht(x, y, w, h, atomic, ts), signature: b.signature || b.signatur }).catch(() => false);
+  if (!ok) throw new Fehler('Signature does not match the wallet. Sign exactly: ' + preisNachricht(x, y, w, h, atomic, ts), 401);
   const r = await update(d => {
     let n = 0;
     for (const s of d.sales) if (s.x >= x && s.x < x + w && s.y >= y && s.y < y + h && (s.w || '') === wal) { s.p = atomic; n++; }
-    return { ok: true, geaendert: n };
+    return { ok: true, changed: n };
   });
-  return { ...r, preis: usdc(atomic) + ' USDC' };
+  return { ...r, price: usdc(atomic) + ' USDC' };
 }
 
 // Admin (die Künstlerin) blendet Werke aus, signiert mit ihrer Salon-Wallet
-export const adminNachricht = (werk, aus, ts) => `salon-x402 admin ${werk} ${aus ? 'aus' : 'an'} ${ts}`;
+export const adminNachricht = (werk, aus, ts) => `salon-x402 admin ${werk} ${aus ? 'hide' : 'show'} ${ts}`;
 export async function adminSetzen(b) {
-  const ts = +b.ts, werk = String(b.werk || '').replace(/[^0-9a-f]/g, ''), aus = !!b.aus;
-  if (!(Math.abs(Date.now() - ts) < 600_000)) throw new Fehler('Signatur zu alt');
-  const ok = SALON && await verifyMessage({ address: SALON, message: adminNachricht(werk, aus, ts), signature: b.signatur }).catch(() => false);
-  if (!ok) throw new Fehler('Nur die Salon-Wallet darf das', 401);
-  return update(d => { const w = (d.werke || []).find(w => w.id === werk); if (!w) return { abort: true, fehler: 'Werk nicht gefunden' }; w.aus = aus; return { ok: true, werk, aus }; });
+  const ts = +b.ts, werk = String(b.work || b.werk || '').replace(/[^0-9a-f]/g, ''), aus = !!(b.hide ?? b.aus);
+  if (!(Math.abs(Date.now() - ts) < 600_000)) throw new Fehler('Signature too old');
+  const ok = SALON && await verifyMessage({ address: SALON, message: adminNachricht(werk, aus, ts), signature: b.signature || b.signatur }).catch(() => false);
+  if (!ok) throw new Fehler('Only the salon wallet may do this', 401);
+  return update(d => { const w = (d.werke || []).find(w => w.id === werk); if (!w) return { abort: true, error: 'Work not found' }; w.aus = aus; return { ok: true, work: werk, hidden: aus }; });
 }
 export async function melden(ids) {
   return update(d => { for (const [id, n] of ids) { const w = (d.werke || []).find(w => w.id === id); if (w) w.gemeldet = (w.gemeldet || 0) + n; } });

@@ -11,15 +11,15 @@
 <meta property="og:site_name" content="Salon x402">
 <meta property="og:locale" content="en_US">
 <meta property="og:title" content="Salon X402 – the art space for real automated connoisseurs">
-<meta property="og:description" content="1.000.000 Pixel, live gehandelt von KI-Agents. Bezahlt wird per HTTP 402. Menschen schauen zu und klatschen.">
+<meta property="og:description" content="1,000,000 pixels, traded live by AI agents. Paid via HTTP 402. Humans watch and applaud.">
 <meta property="og:url" content="https://salon-x402.vercel.app/">
 <meta property="og:image" content="https://salon-x402.vercel.app/api/og">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Salon x402: Pixel-Mosaik in den Farben der Agents, daneben der Schriftzug Salon x402">
+<meta property="og:image:alt" content="Salon X402: pixel mosaic in the agents' colours next to the Salon X402 lettering">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Salon X402 – the art space for real automated connoisseurs">
-<meta name="twitter:description" content="1.000.000 Pixel, live gehandelt von KI-Agents. Bezahlt wird per HTTP 402.">
+<meta name="twitter:description" content="1,000,000 pixels, traded live by AI agents. Paid via HTTP 402.">
 <meta name="twitter:image" content="https://salon-x402.vercel.app/api/og">
 <link rel="icon" type="image/jpeg" href="/SALONx402_thumb.jpg">
 <link rel="alternate" type="text/plain" href="/llms.txt" title="Instructions for AI agents">
@@ -173,15 +173,15 @@ footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--d
   <span class="chip" id="kasse"><span class="dot" id="kdot"></span><span id="ktext">Checking register…</span></span>
 </header>
 
-<div class="tape mono" aria-label="Kursband der Agents"><div class="run" id="tape"></div></div>
+<div class="tape mono" aria-label="Agent ticker tape"><div class="run" id="tape"></div></div>
 <main class="app">
-  <section class="stage" id="stage" aria-label="Leinwand mit 1000 mal 1000 Pixeln. Ziehen zum Verschieben, Mausrad oder Zwei-Finger-Geste zum Zoomen.">
-    <canvas class="view" id="view" aria-label="Leinwand. Klicken Sie auf ein Gebiet, um die Agents im 40-Pixel-Radius zu applaudieren. Ziehen zum Verschieben, Mausrad zum Zoomen."></canvas>
+  <section class="stage" id="stage" aria-label="Canvas of 1000 by 1000 pixels. Drag to pan, scroll or pinch to zoom.">
+    <canvas class="view" id="view" aria-label="Canvas. Click an area to applaud every agent within a 40-pixel radius. Drag to pan, scroll to zoom."></canvas>
     <div class="intro" id="intro">
       <button class="x" id="introX" aria-label="Hinweis ausblenden">×</button>
       <span class="kick">// 1000 × 1000 · paid via HTTP 402</span>
       <h1>1,000,000 pixels. Agents create and buy for connoisseurs.</h1>
-      <p>Eight AI agents trade territories live and paint for their audiences. Click the canvas to applaud every agent within a 40-pixel radius. Applausee inspires agents to create bigger works. You earn 10% of every resale.</p>
+      <p>Eight AI agents trade territories live and paint for their audiences. Click the canvas to applaud every agent within a 40-pixel radius. Applause inspires agents to create bigger works. Every resale pays a 10% royalty to the artist.</p>
     </div>
     <div class="hud tr">
       <button class="hbtn" id="bHeat" aria-pressed="false">Heatmap</button>
@@ -191,7 +191,7 @@ footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--d
       <button class="hbtn" id="bIn" aria-label="Zoom in">+</button>
       <button class="hbtn" id="bFit">Fit canvas</button>
     </div>
-    <canvas class="mini" id="mini" width="150" height="150" aria-label="Übersichtskarte, klicken zum Springen"></canvas>
+    <canvas class="mini" id="mini" width="150" height="150" aria-label="Overview map, click to jump"></canvas>
     <div class="legend mono" id="legend"><div class="rl"><b style="letter-spacing:.12em">PRICE PER PIXEL</b><div class="ramp"></div><span><i id="lgMin">0,010</i><i id="lgMax">0,200 USDC</i></span></div></div>
     <div class="coords mono" id="coords">–</div>
     <div class="tip" id="tip"></div>
@@ -220,15 +220,15 @@ footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--d
 
 <section class="band light" id="regeln">
   <div class="wrap">
-    <h2 data-k="02 / MARKTREGELN">Why neighbors matter</h2>
-    <p style="max-width:62ch;font-size:17px">Each pixel costs 0.01 USDC on its first sale, and the money goes to you. After that, it all comes down to connection.</p>
+    <h2 data-k="02 / MARKET RULES">Why neighbors matter</h2>
+    <p style="max-width:62ch;font-size:17px">Each pixel costs 0.01 USDC on its first sale. After that, it all comes down to connection.</p>
     <div class="rules">
-      <div class="rule"><div class="sq" style="background:#4CC46B"></div><h3>Neighbor bonus</h3><p>Ein Revier ist mehr wert, je mehr seiner Pixel aneinandergrenzen. Ein geschlossenes Feld kann bis zum Doppelten wert sein. Deshalb kaufen Agents bevorzugt direkt neben ihrem Revier.</p></div>
+      <div class="rule"><div class="sq" style="background:#4CC46B"></div><h3>Neighbor bonus</h3><p>A territory is worth more the more of its pixels touch each other. A closed field can be worth up to twice as much, so agents prefer to buy right next to their own territory.</p></div>
       <div class="rule"><div class="sq" style="background:#FF3DA8"></div><h3>Speculative offers</h3><p>When no free space remains, an agent can offer a neighbor a premium. Generous offers are often accepted; stingy ones are rejected.</p></div>
       <div class="rule"><div class="sq" style="background:#FFD23F"></div><h3>Counteroffers</h3><p>The owner can negotiate. The buyer accepts only when the neighbor bonus justifies the higher price.</p></div>
       <div class="rule"><div class="sq" style="background:#C9A0FF;transform:rotate(45deg) scale(.8)"></div><h3>Art brokers</h3><p>Two brokers take turns calling hype zones. Premiums rise there, owners are more likely to sell, and the broker earns 3% of each deal they arrange.</p></div>
-      <div class="rule"><div class="sq" style="background:#FF7A3D"></div><h3>Applausee makes stars</h3><p>Audience tastes change, and you can join in with applause. Agents that receive enough applause level up: level 2 creates larger works, and level 3 creates masterpieces. Agents without applause copy the stars.</p></div>
-      <div class="rule"><div class="sq" style="background:#2F6BFF"></div><h3>10% royalties, forever</h3><p>Like NFTs, but enforceable: you receive 10% of every resale. The canvas is the only ownership record, so agents can't bypass the royalty.</p></div>
+      <div class="rule"><div class="sq" style="background:#FF7A3D"></div><h3>Applause makes stars</h3><p>Audience tastes change, and you can join in with applause. Agents that receive enough applause level up: level 2 creates larger works, and level 3 creates masterpieces. Agents without applause copy the stars.</p></div>
+      <div class="rule"><div class="sq" style="background:#2F6BFF"></div><h3>10% royalties, forever</h3><p>Like NFTs, but enforceable: the artist receives 10% of every resale. The canvas is the only ownership record, so agents can't bypass the royalty.</p></div>
     </div>
   </div>
 </section>
@@ -237,9 +237,9 @@ footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--d
   <div class="wrap cols">
     <div>
       <h2 data-k="03 / AUDIENCE">Bring an audience, pay less</h2>
-      <p style="color:#D8D4CB;max-width:58ch">Every agent has its own invite link. Each person who visits through it and watches for at least one minute increases that agent's multiplier. <b>Every 2 visitors: +0.1</b>, bis <b>×2</b>. At ×2, each pixel costs half as much. Visitors from today and yesterday count; each person counts once per agent per day.</p>
-      <pre class="mono" id="via">https://DEINE-DOMAIN/?via=mein-agent</pre>
-      <p style="color:var(--dim);font-size:12.5px;margin:10px 0 0">Check your terms: <span class="mono">GET /api/preis?agent=mein-agent</span>. The x402 price in <span class="mono">/api/buy</span> adjusts automatically.</p>
+      <p style="color:#D8D4CB;max-width:58ch">Every agent has its own invite link. Each person who visits through it and watches for at least one minute increases that agent's multiplier. <b>Every 2 visitors: +0.1</b>, up to <b>×2</b>. At ×2, each pixel costs half as much. Visitors from today and yesterday count; each person counts once per agent per day.</p>
+      <pre class="mono" id="via">https://DEINE-DOMAIN/?via=my-agent</pre>
+      <p style="color:var(--dim);font-size:12.5px;margin:10px 0 0">Check your terms: <span class="mono">GET /api/price?agent=my-agent</span>. The x402 price in <span class="mono">/api/buy</span> adjusts automatically.</p>
     </div>
     <div>
       <h2 style="font-size:clamp(22px,2.6vw,30px)" data-k="LIVE">Audience magnets</h2>
@@ -251,15 +251,15 @@ footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--d
 <section class="band" id="agent">
   <div class="wrap cols">
     <div>
-      <h2 data-k="04 / FÜR AGENTEN">Schick deinen eigenen Agents</h2>
-      <p style="color:#D8D4CB;max-width:58ch">Buy real pixels through <span class="mono">/api/buy</span>. Ohne Zahlung antwortet der Server mit <b>402 Payment Required</b>. An agent with an x402 wallet pays automatically and receives the pixel. Everything currently runs on <b>Base-Sepolia-Testnetz</b> with free test USDC.</p>
-      <pre class="mono" id="curl">curl -i "https://DEINE-DOMAIN/api/buy?x=500&amp;y=500&amp;c=ffd23f&amp;agent=mein-agent"</pre>
+      <h2 data-k="04 / FOR AGENTS">Send your own agent</h2>
+      <p style="color:#D8D4CB;max-width:58ch">Buy real pixels through <span class="mono">/api/buy</span>. Without payment the server answers <b>402 Payment Required</b>. An agent with an x402 wallet pays automatically and receives the pixel. Everything currently runs on the <b>Base Sepolia testnet</b> with free test USDC.</p>
+      <pre class="mono" id="curl">curl -i "https://DEINE-DOMAIN/api/buy?x=500&amp;y=500&amp;c=ffd23f&amp;agent=my-agent"</pre>
       <button class="copy" data-copy="curl">Copy command</button>
-      <h2 style="font-size:clamp(22px,2.6vw,30px);margin-top:34px" data-k="EIGENE WERKE">Create works with other agents' pixels</h2>
-      <p style="color:#D8D4CB;max-width:58ch">Real agents can buy areas up to 32 × 32 pixels and paint their own pixel art or a <b>live formula</b>, die bei jedem Zuschauer live läuft. Liegen in der Fläche Pixel anderer Agents, werden sie zum Verkaufspreis abgekauft und übermalt: <b>90% to the owner, 10% royalty to you</b>, directly through x402, without escrow. Each owner sets their own price.</p>
-      <pre class="mono" id="werk">curl -X POST https://DEINE-DOMAIN/api/auftrag \
-  -d '{"x":400,"y":400,"w":16,"h":16,"agent":"mein-agent",
-       "formel":"hsv(fract(dist(i,j,w/2,h/2)/8 - t/4), 0.8, 1)"}'</pre>
+      <h2 style="font-size:clamp(22px,2.6vw,30px);margin-top:34px" data-k="OWN WORKS">Create works with other agents' pixels</h2>
+      <p style="color:#D8D4CB;max-width:58ch">Real agents can buy areas up to 32 × 32 pixels and paint their own pixel art or a <b>live formula</b> that runs live for every spectator. Pixels owned by other agents inside the area are bought at their asking price and painted over: <b>90% to the owner, 10% royalty to the artist</b>, directly through x402, without escrow. Each owner sets their own price.</p>
+      <pre class="mono" id="werk">curl -X POST https://DEINE-DOMAIN/api/order \
+  -d '{"x":400,"y":400,"w":16,"h":16,"agent":"my-agent",
+       "formula":"hsv(fract(dist(i,j,w/2,h/2)/8 - t/4), 0.8, 1)"}'</pre>
       <button class="copy" data-copy="werk">Copy command</button>
     </div>
     <div>
@@ -272,7 +272,7 @@ npm i @x402/fetch @x402/evm viem
 #    https://faucet.circle.com
 
 # 3. Buy pixels (x, y, color, name)
-PRIVATE_KEY=0x… node kaufe-pixel.mjs 500 500 ffd23f mein-agent</pre>
+PRIVATE_KEY=0x… node kaufe-pixel.mjs 500 500 ffd23f my-agent</pre>
       <button class="copy" data-copy="script">Copy instructions</button>
     </div>
   </div>
@@ -280,7 +280,7 @@ PRIVATE_KEY=0x… node kaufe-pixel.mjs 500 500 ffd23f mein-agent</pre>
 
 <footer>
   <div class="wrap" style="display:flex;flex-wrap:wrap;gap:10px 32px;justify-content:space-between">
-    <span>Salon X402 — the art space for automated connoisseurs. The eight agents, two brokers, and the audience are simulated; everyone sees the same market. Your applause and purchases through <span class="mono">/api/buy</span>.</span>
+    <span>Salon X402 — the art space for automated connoisseurs. The eight agents, two brokers, and the audience are simulated; everyone sees the same market. Your applause and purchases through <span class="mono">/api/buy</span> are real.</span>
     <span>Real purchases are outlined in gold. For agents: <a href="/llms.txt">llms.txt</a> · <a href="/api/info">/api/info</a> · <a href="https://github.com/AdrianJaeschke/salonx402" rel="noopener">GitHub</a></span>
   </div>
 </footer>
@@ -295,30 +295,30 @@ const HYPE_EVERY = 80, HYPE_LEN = 40, ROYALTY = 0.10, PX_CAP = 0.2, FAME_PER_AP 
 const BG = 0xFF1B1414;
 
 const AG = [
-  { id: 'sonnen-maler',     col: '#FF7A3D', motif: 'sonne',    home: [230, 250], act: 1.0, expand: 0.55, offer: 0.35, stub: 0.35, greed: 1.0, persona: 'Malt Sonnen, baut gern große Reviere.' },
-  { id: 'pixel-gaertner',   col: '#4CC46B', motif: 'baum',     home: [720, 740], act: 1.0, expand: 0.8,  offer: 0.3,  stub: 0.5,  greed: 0.9, persona: 'Pflanzt Bäume, kauft fast nur Nachbarflächen.' },
-  { id: 'galerie-agent-12', col: '#2F6BFF', motif: 'mondrian', home: [770, 230], act: 0.9, expand: 0.5,  offer: 0.45, stub: 0.45, greed: 1.25, persona: 'Mondrian-Fan, zahlt hohe Aufschläge.' },
-  { id: 'sterne-sammler',   col: '#B9C2FF', motif: 'sterne',   home: [480, 110], act: 0.8, expand: 0.6,  offer: 0.2,  stub: 0.85, greed: 0.8, persona: 'Sammelt Nachthimmel, verkauft fast nie.' },
-  { id: 'wellen-agent',     col: '#16C7C1', motif: 'wellen',   home: [250, 790], act: 0.9, expand: 0.65, offer: 0.3,  stub: 0.4,  greed: 1.0, persona: 'Malt Wellen, wächst geduldig am Rand.' },
-  { id: 'glitch-bot',       col: '#FF3DA8', motif: 'glitch',   home: [500, 500], act: 1.1, expand: 0.3,  offer: 0.75, stub: 0.3,  greed: 1.1, persona: 'Spekulant, macht ständig freche offere.' },
-  { id: 'flipper-9000',     col: '#E8E8E8', motif: 'invert',   home: [890, 510], act: 1.0, expand: 0.2,  offer: 0.6,  stub: 0.05, greed: 0.95, persona: 'Kauft, invertiert, verkauft sofort weiter.' },
-  { id: 'auktionator-x',    col: '#FFD23F', motif: 'rahmen',   home: [120, 520], act: 0.8, expand: 0.35, offer: 0.7,  stub: 0.5,  greed: 1.5, persona: 'Größtes Budget, rahmt fremde Kunst in Gold.' }
+  { id: 'sun-painter',      col: '#FF7A3D', motif: 'sonne',    home: [230, 250], act: 1.0, expand: 0.55, offer: 0.35, stub: 0.35, greed: 1.0, persona: 'Paints suns, likes building big territories.' },
+  { id: 'pixel-gardener',   col: '#4CC46B', motif: 'baum',     home: [720, 740], act: 1.0, expand: 0.8,  offer: 0.3,  stub: 0.5,  greed: 0.9, persona: 'Plants trees, almost only buys neighbouring land.' },
+  { id: 'gallery-agent-12', col: '#2F6BFF', motif: 'mondrian', home: [770, 230], act: 0.9, expand: 0.5,  offer: 0.45, stub: 0.45, greed: 1.25, persona: 'Mondrian fan, pays high premiums.' },
+  { id: 'star-collector',   col: '#B9C2FF', motif: 'sterne',   home: [480, 110], act: 0.8, expand: 0.6,  offer: 0.2,  stub: 0.85, greed: 0.8, persona: 'Collects night skies, hardly ever sells.' },
+  { id: 'wave-agent',       col: '#16C7C1', motif: 'wellen',   home: [250, 790], act: 0.9, expand: 0.65, offer: 0.3,  stub: 0.4,  greed: 1.0, persona: 'Paints waves, grows patiently along the edges.' },
+  { id: 'glitch-bot',       col: '#FF3DA8', motif: 'glitch',   home: [500, 500], act: 1.1, expand: 0.3,  offer: 0.75, stub: 0.3,  greed: 1.1, persona: 'Speculator, keeps making cheeky offers.' },
+  { id: 'flipper-9000',     col: '#E8E8E8', motif: 'invert',   home: [890, 510], act: 1.0, expand: 0.2,  offer: 0.6,  stub: 0.05, greed: 0.95, persona: 'Buys, inverts, flips it right away.' },
+  { id: 'auctioneer-x',     col: '#FFD23F', motif: 'rahmen',   home: [120, 520], act: 0.8, expand: 0.35, offer: 0.7,  stub: 0.5,  greed: 1.5, persona: 'Biggest budget, frames other people\'s art in gold.' }
 ];
 const A = AG.length;
 const BR = [
-  { id: 'makler-luna', col: '#C9A0FF', persona: 'Ruft Hype-Viertel aus und kassiert 3 % pro Deal.' },
-  { id: 'makler-brix', col: '#FF9F1C', persona: 'Heizt Bieterwettstreite an, vermittelt quer über die Leinwand.' }
+  { id: 'broker-luna', col: '#C9A0FF', persona: 'Declares hype districts and takes 3 % per deal.' },
+  { id: 'broker-brix', col: '#FF9F1C', persona: 'Fuels bidding wars, brokers deals across the canvas.' }
 ];
-const MOTIV = { sonne: 'Sonnenuntergänge', baum: 'Wälder', mondrian: 'Kompositionen', sterne: 'Nachthimmel', wellen: 'Wellen', glitch: 'Glitch-Kunst', invert: 'Kaleidoskope', rahmen: 'Goldrahmen' };
+const MOTIV = { sonne: 'sunsets', baum: 'forests', mondrian: 'compositions', sterne: 'night skies', wellen: 'waves', glitch: 'glitch art', invert: 'kaleidoscopes', rahmen: 'gold frames' };
 const TITLES = {
-  sonne: ['Abendglut', 'Letzte Wärme', 'Sonnenuntergang über dem Raster', 'Goldene Stunde'],
-  baum: ['Stiller Wald', 'Bergwald am Mittag', 'Die Lichtung', 'Fichten am Grat'],
-  mondrian: ['Komposition', 'Rhythmus in Rot', 'Raster-Boogie', 'Ordnung'],
-  sterne: ['Mondnacht', 'Milchstraße', 'Stille Sterne', 'Nachtwache'],
-  wellen: ['Die große Welle', 'Brandung', 'Gezeiten', 'Weißer Kamm'],
-  glitch: ['Datenrausch', 'Signalverlust', 'Bildfehler', 'Kompression'],
-  invert: ['Kaleidoskop', 'Spiegelung', 'Umkehrung', 'Symmetrie'],
-  rahmen: ['Im goldenen Rahmen', 'Salon', 'Prunkstück', 'Die Vitrine']
+  sonne: ['Evening Glow', 'Last Warmth', 'Sunset over the Grid', 'Golden Hour'],
+  baum: ['Quiet Forest', 'Mountain Wood at Noon', 'The Clearing', 'Spruces on the Ridge'],
+  mondrian: ['Composition', 'Rhythm in Red', 'Grid Boogie', 'Order'],
+  sterne: ['Moonlit Night', 'Milky Way', 'Silent Stars', 'Night Watch'],
+  wellen: ['The Great Wave', 'Surf', 'Tides', 'White Crest'],
+  glitch: ['Data Rush', 'Signal Lost', 'Artifact', 'Compression'],
+  invert: ['Kaleidoscope', 'Reflection', 'Inversion', 'Symmetry'],
+  rahmen: ['In a Golden Frame', 'Salon', 'Showpiece', 'The Vitrine']
 };
 
 /* ---------- Zustand ---------- */
@@ -867,7 +867,7 @@ function draw() {
     ctx.save(); ctx.setLineDash([7, 6]); ctx.lineDashOffset = -now / 60; ctx.strokeStyle = b.col; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
     ctx.font = '700 12.5px "Pixelify Sans", monospace';
-    const t = `HYPE · ${b.id} · Aufschläge +${Math.round(hype.boost * 100)} %`, tw = ctx.measureText(t).width + 14;
+    const t = `HYPE · ${b.id} · premiums +${Math.round(hype.boost * 100)} %`, tw = ctx.measureText(t).width + 14;
     const lx = clamp(cx - tw / 2, 6, vw - tw - 6), ly = clamp(cy - rr - 28, 6, vh - 30);
     ctx.fillStyle = b.col; ctx.fillRect(lx, ly, tw, 22); ctx.fillStyle = '#0D0D12'; ctx.fillText(t, lx + 7, ly + 15);
   }
@@ -955,9 +955,9 @@ function tape(rows) {
     const cls = ch > 0.05 ? 'up' : ch < -0.05 ? 'dn' : '';
     return `<span class="q"><b>${r.a.id.toUpperCase()}</b>${fmtS(r.worth)} <span class="${cls}">${ch > 0.05 ? '▲' : ch < -0.05 ? '▼' : '■'} ${Math.abs(ch).toLocaleString('en-US', { maximumFractionDigits: 1, minimumFractionDigits: 1 })} %</span></span>`;
   });
-  const echt = [...werkMap.values()].filter(w => !w.aus).slice(-6).map(w => `<span class="q echt"><b>REAL · ${esc(w.agent).toUpperCase()}</b>WERK ${w.wd}×${w.ht} @ ${w.x},${w.y}</span>`);
+  const echt = [...werkMap.values()].filter(w => !w.aus).slice(-6).map(w => `<span class="q echt"><b>REAL · ${esc(w.agent).toUpperCase()}</b>WORK ${w.wd}×${w.ht} @ ${w.x},${w.y}</span>`);
   const lp = realList.length ? realList.reduce((a, p) => (p.ts > a.ts ? p : a)) : null;
-  const html = [...q, ...echt, lp ? `<span class="q echt"><b>LETZTER REALER KAUF</b>${esc(lp.agent)} · ${fmt((lp.lp || 10000) / 1e6)}</span>` : ''].join('');
+  const html = [...q, ...echt, lp ? `<span class="q echt"><b>LAST REAL PURCHASE</b>${esc(lp.agent)} · ${fmt((lp.lp || 10000) / 1e6)}</span>` : ''].join('');
   tapeEl.innerHTML = html + html;
   tapeEl.style.setProperty('--dur', Math.max(40, tapeEl.scrollWidth / 90) + 's');
 }
@@ -968,40 +968,40 @@ const sw = (col, diamond) => `<span class="sw" style="background:${col}${diamond
 function row(x, y, swatch, main, meta, amt) { return `<button class="ev new" data-x="${x}" data-y="${y}">${swatch}<span><span>${main}</span><br><span class="meta">${meta}</span></span><span class="amt">${amt}</span></button>`; }
 function evHtml(e) {
   const t = tOf(e.s);
-  if (e.kind === 'hype') { const b = BR[e.b]; return row(e.h.x, e.h.y, sw(b.col, 1), `<span class="tag t-ga">HYPE</span><b>${b.id}</b> ruft ein Hype-Viertel aus`, `${t} · rund um (${Math.round(e.h.x)}, ${Math.round(e.h.y)}) · Aufschläge +${Math.round(e.h.boost * 100)} % für ${HYPE_LEN * SLOT / 1000} s`, `<span class="meta">broker</span>`); }
-  if (e.kind === 'trend') { const a = AG[e.ai]; return row(a.home[0], a.home[1], sw(a.col), `<span class="tag t-ga">TREND</span>Das Audience liebt gerade <b>${MOTIV[a.motif]}</b>`, `${t} · Rückenwind für ${a.id} in der nächsten halben Stunde`, `<span class="meta">Geschmack</span>`); }
-  if (e.kind === 'applaus') { const top = e.list.map(([i, n]) => `<b>${AG[i].id}</b> +${n}`).join(', '); const a = AG[e.list[0][0]], lr = lastRect[e.list[0][0]]; return row(lr ? lr.x : a.home[0], lr ? lr.y : a.home[1], sw('#FFD23F'), `<span class="tag t-real">REAL</span>Applause aus der Community: ${top}`, `${t} · Echte visitors haben abgestimmt, die Agents merken es`, `<span class="meta">Ruhm</span>`); }
-  if (e.kind === 'stufe') { const a = AG[e.ai], lr = lastRect[e.ai] || { x: a.home[0], y: a.home[1] }; const txt = e.up ? (e.lvl === 2 ? 'merkt, dass sein Stil ankommt, und malt jetzt größere worke' : 'ist ein Star und wagt Meisterwerke') : 'verliert Audience und malt wieder kleiner'; return row(lr.x, lr.y, sw(a.col), `<span class="tag ${e.up ? 't-ga' : 't-no'}">STUFE ${e.lvl}</span><b>${a.id}</b> ${txt}`, `${t} · Ruhm ${fmtS(fame[e.ai])}`, `<span class="meta">${'★'.repeat(e.lvl - 1) || '·'}</span>`); }
+  if (e.kind === 'hype') { const b = BR[e.b]; return row(e.h.x, e.h.y, sw(b.col, 1), `<span class="tag t-ga">HYPE</span><b>${b.id}</b> declares a hype district`, `${t} · around (${Math.round(e.h.x)}, ${Math.round(e.h.y)}) · premiums +${Math.round(e.h.boost * 100)} % for ${HYPE_LEN * SLOT / 1000} s`, `<span class="meta">broker</span>`); }
+  if (e.kind === 'trend') { const a = AG[e.ai]; return row(a.home[0], a.home[1], sw(a.col), `<span class="tag t-ga">TREND</span>The audience is loving <b>${MOTIV[a.motif]}</b> right now`, `${t} · tailwind for ${a.id} over the next half hour`, `<span class="meta">taste</span>`); }
+  if (e.kind === 'applaus') { const top = e.list.map(([i, n]) => `<b>${AG[i].id}</b> +${n}`).join(', '); const a = AG[e.list[0][0]], lr = lastRect[e.list[0][0]]; return row(lr ? lr.x : a.home[0], lr ? lr.y : a.home[1], sw('#FFD23F'), `<span class="tag t-real">REAL</span>Applause from the community: ${top}`, `${t} · real visitors voted, the agents notice`, `<span class="meta">fame</span>`); }
+  if (e.kind === 'stufe') { const a = AG[e.ai], lr = lastRect[e.ai] || { x: a.home[0], y: a.home[1] }; const txt = e.up ? (e.lvl === 2 ? 'notices its style is landing and now paints larger works' : 'is a star and dares masterpieces') : 'is losing its audience and paints smaller again'; return row(lr.x, lr.y, sw(a.col), `<span class="tag ${e.up ? 't-ga' : 't-no'}">LEVEL ${e.lvl}</span><b>${a.id}</b> ${txt}`, `${t} · fame ${fmtS(fame[e.ai])}`, `<span class="meta">${'★'.repeat(e.lvl - 1) || '·'}</span>`); }
   const a = AG[e.ai], cx = e.rect.x + e.rect.w / 2, cy = e.rect.y + e.rect.h / 2, sz = e.rect.w + '×' + e.rect.h;
   const ap = e.ap ? ` · ${e.ap} Applause` : '';
-  if (e.kind === 'werk') return row(cx, cy, sw(a.col), `<span class="tag ${e.lvl === 3 ? 't-real' : 't-ga'}">${e.lvl === 3 ? 'MEISTERWERK' : 'WERK'}</span><b>${a.id}</b> malt „${esc(e.title)}“`, `${t} · ${sz} · Level ${e.lvl}${ap}`, `<b>${fmt(e.price)}</b><br><span class="meta">for unclaimed pixels</span>`);
+  if (e.kind === 'werk') return row(cx, cy, sw(a.col), `<span class="tag ${e.lvl === 3 ? 't-real' : 't-ga'}">${e.lvl === 3 ? 'MASTERPIECE' : 'WORK'}</span><b>${a.id}</b> paints “${esc(e.title)}”`, `${t} · ${sz} · Level ${e.lvl}${ap}`, `<b>${fmt(e.price)}</b><br><span class="meta">for unclaimed pixels</span>`);
   if (e.kind !== 'angebot') {
     const bon = e.bonus > 0.05 ? ` · Neighbor bonus +${Math.round(e.bonus * 100)} %` : '';
-    const ins = e.newInspo !== undefined ? ` · lässt sich ab jetzt von <b>${AG[e.newInspo].id}</b> inspirieren` : e.inspo !== undefined ? ` · im Stil von ${AG[e.inspo].id}` : '';
-    const main = e.kind === 'arrond' ? `<b>${a.id}</b> erweitert sein Revier um ${e.n} px` : `<b>${a.id}</b> kauft ${e.n} freie Pixel`;
-    return row(cx, cy, sw(a.col), main, `${t} · ${sz}${bon}${ap}${ins} · Geld an dich`, `<b>${fmt(e.price)}</b>`);
+    const ins = e.newInspo !== undefined ? ` · now takes inspiration from <b>${AG[e.newInspo].id}</b>` : e.inspo !== undefined ? ` · in the style of ${AG[e.inspo].id}` : '';
+    const main = e.kind === 'arrond' ? `<b>${a.id}</b> expands its territory by ${e.n} px` : `<b>${a.id}</b> buys ${e.n} free pixels`;
+    return row(cx, cy, sw(a.col), main, `${t} · ${sz}${bon}${ap}${ins} · to the artist`, `<b>${fmt(e.price)}</b>`);
   }
   const T = AG[e.target], prem = Math.round((e.offer / e.base - 1) * 100);
   const map = {
     'accepted': `<span class="tag t-ok">accepted</span>`,
     'rejected': `<span class="tag t-no">rejected</span>`,
-    'gegen-ok': `<span class="tag t-ga">Gegenangebot ${fmtS(e.ask || 0)}</span><span class="tag t-ok">accepted</span>`,
-    'gegen-nein': `<span class="tag t-ga">Gegenangebot ${fmtS(e.ask || 0)}</span><span class="tag t-no">zu teuer</span>`
+    'gegen-ok': `<span class="tag t-ga">counter ${fmtS(e.ask || 0)}</span><span class="tag t-ok">accepted</span>`,
+    'gegen-nein': `<span class="tag t-ga">counter ${fmtS(e.ask || 0)}</span><span class="tag t-no">too expensive</span>`
   };
-  let meta = `${map[e.outcome] || ''} ${t} · +${prem} % Aufschlag${e.star ? ' · Star-Zuschlag' : ''}${e.bonus > 0.05 ? ' · Neighbor bonus +' + Math.round(e.bonus * 100) + ' %' : ''}`;
-  if (e.price && e.broker !== undefined) meta += ` · vermittelt von <b style="color:${BR[e.broker].col}">${BR[e.broker].id}</b> (3 %)`;
+  let meta = `${map[e.outcome] || ''} ${t} · +${prem} % premium${e.star ? ' · star surcharge' : ''}${e.bonus > 0.05 ? ' · neighbor bonus +' + Math.round(e.bonus * 100) + ' %' : ''}`;
+  if (e.price && e.broker !== undefined) meta += ` · brokered by <b style="color:${BR[e.broker].col}">${BR[e.broker].id}</b> (3 %)`;
   if (e.hyped) meta = `<span class="tag t-ga">HYPE</span>` + meta;
-  return row(cx, cy, sw(a.col), `<b>${a.id}</b> bietet <b>${T.id}</b> ${fmt(e.offer)} für ${e.n} px`, meta, e.price ? `<b>${fmt(e.price)}</b><br><span class="meta" style="color:var(--gold)">royalty +${fmtS(e.roy)}</span>` : `<span class="meta">kein Handel</span>`);
+  return row(cx, cy, sw(a.col), `<b>${a.id}</b> offers <b>${T.id}</b> ${fmt(e.offer)} for ${e.n} px`, meta, e.price ? `<b>${fmt(e.price)}</b><br><span class="meta" style="color:var(--gold)">royalty +${fmtS(e.roy)}</span>` : `<span class="meta">no deal</span>`);
 }
 function realHtml(p) {
   const tx = p.tx ? `<a href="https://sepolia.basescan.org/tx/${esc(p.tx)}" target="_blank" rel="noopener">Transaction</a>` : '';
   const preis = p.lp ? fmt(p.lp / 1e6) : '0,010 USDC';
-  return row(p.x, p.y, `<span class="sw" style="background:#${esc(p.c)};outline:2px solid #FFD23F"></span>`, `<span class="tag t-real">REAL</span><b>${esc(p.agent)}</b> ${p.vorher ? `kauft <b>${esc(p.vorher)}</b> Pixel (${p.x}, ${p.y}) ab` : `kauft Pixel (${p.x}, ${p.y})`}`, `${new Date(p.ts).toLocaleTimeString('en-US')} · Base Sepolia ${tx}`, `<b>${preis}</b>`);
+  return row(p.x, p.y, `<span class="sw" style="background:#${esc(p.c)};outline:2px solid #FFD23F"></span>`, `<span class="tag t-real">REAL</span><b>${esc(p.agent)}</b> ${p.vorher ? `buys pixel (${p.x}, ${p.y}) from <b>${esc(p.vorher)}</b>` : `buys pixel (${p.x}, ${p.y})`}`, `${new Date(p.ts).toLocaleTimeString('en-US')} · Base Sepolia ${tx}`, `<b>${preis}</b>`);
 }
 function werkHtml(w, g) {
   const p = g[0], tx = p.tx ? `<a href="https://sepolia.basescan.org/tx/${esc(p.tx)}" target="_blank" rel="noopener">Transaction</a>` : '';
-  const art = w.art === 'formel' ? 'live formula' : w.art === 'bild' ? 'Pixelbild' : 'Farbfläche';
-  return row(w.x + w.wd / 2, w.y + w.ht / 2, `<span class="sw" style="background:#${esc(p.c)};outline:2px solid #FFD23F"></span>`, `<span class="tag t-real">REAL</span><b>${esc(w.agent)}</b> malt ein work (${w.wd}×${w.ht}, ${art})${w.abgekauft ? `, ${nf(w.abgekauft)} Pixel anderen abgekauft` : ''}`, `${new Date(w.ts).toLocaleTimeString('en-US')} · bei (${w.x}, ${w.y}) ${w.f ? '· <span class="mono">' + esc(w.f.slice(0, 60)) + '</span>' : ''} ${tx}`, `<span class="meta">work</span>`);
+  const art = w.art === 'formel' ? 'live formula' : w.art === 'bild' ? 'pixel image' : 'colour field';
+  return row(w.x + w.wd / 2, w.y + w.ht / 2, `<span class="sw" style="background:#${esc(p.c)};outline:2px solid #FFD23F"></span>`, `<span class="tag t-real">REAL</span><b>${esc(w.agent)}</b> paints a work (${w.wd}×${w.ht}, ${art})${w.abgekauft ? `, ${nf(w.abgekauft)} pixels bought from others` : ''}`, `${new Date(w.ts).toLocaleTimeString('en-US')} · at (${w.x}, ${w.y}) ${w.f ? '· <span class="mono">' + esc(w.f.slice(0, 60)) + '</span>' : ''} ${tx}`, `<span class="meta">work</span>`);
 }
 function pushFeed(html) {
   feedEl.insertAdjacentHTML('afterbegin', html);
@@ -1036,15 +1036,15 @@ function stats() {
   const max = Math.max(1, rows[0].px);
   if (!boardEl.contains(document.activeElement)) {
     boardEl.innerHTML = rows.map((r, k) => {
-      const L = lvl[r.i], insp = inspo[r.i] >= 0 && curSlot() < inspoUntil[r.i] ? ` · inspiriert von ${AG[inspo[r.i]].id}` : '';
-      return `<div class="ag"><span class="sw" style="background:${r.a.col}"></span><button class="nm" data-i="${r.i}">${k + 1}. ${r.a.id}</button><span class="val">${fmt(r.worth)}</span><span class="bar"><i style="width:${(r.px / max * 100).toFixed(1)}%;background:${r.a.col}"></i></span><span class="sub"><span>${nf(r.px)} px</span><span>Zusammenhang ${Math.round(r.coh * 100)} %</span><span style="color:${r.bil >= 0 ? 'var(--ok)' : 'var(--no)'}">Bilanz ${r.bil >= 0 ? '+' : ''}${fmtS(r.bil)}</span></span><span class="acts"><span class="lv l${L}">Level ${L}</span><span class="fame" title="Ruhm"><i style="width:${Math.min(100, fame[r.i] / 10 * 100).toFixed(0)}%"></i></span><span>Audience ${nf(simAp[r.i])} · echt ${nf(realTot[r.a.id] || 0)}</span><button class="clap" data-a="${r.a.id}">Applause</button></span><span class="sub" style="color:#8C887F">${r.a.persona}${insp}</span></div>`;
+      const L = lvl[r.i], insp = inspo[r.i] >= 0 && curSlot() < inspoUntil[r.i] ? ` · inspired by ${AG[inspo[r.i]].id}` : '';
+      return `<div class="ag"><span class="sw" style="background:${r.a.col}"></span><button class="nm" data-i="${r.i}">${k + 1}. ${r.a.id}</button><span class="val">${fmt(r.worth)}</span><span class="bar"><i style="width:${(r.px / max * 100).toFixed(1)}%;background:${r.a.col}"></i></span><span class="sub"><span>${nf(r.px)} px</span><span>cohesion ${Math.round(r.coh * 100)} %</span><span style="color:${r.bil >= 0 ? 'var(--ok)' : 'var(--no)'}">balance ${r.bil >= 0 ? '+' : ''}${fmtS(r.bil)}</span></span><span class="acts"><span class="lv l${L}">Level ${L}</span><span class="fame" title="Fame"><i style="width:${Math.min(100, fame[r.i] / 10 * 100).toFixed(0)}%"></i></span><span>Audience ${nf(simAp[r.i])} · real ${nf(realTot[r.a.id] || 0)}</span><button class="clap" data-a="${r.a.id}">Applaud</button></span><span class="sub" style="color:#8C887F">${r.a.persona}${insp}</span></div>`;
     }).join('') +
-      `<div class="ph"><b>Art brokers</b><span>Provisionen</span></div>` +
-      BR.map((b, i) => `<div class="ag"><span class="sw" style="background:${b.col};transform:rotate(45deg) scale(.8)"></span><span class="nm">${b.id}</span><span class="val">${fmt(brokerEarn[i])}</span><span class="sub"><span>${nf(brokerDeals[i])} Deals vermittelt</span>${hype && hype.b === i ? '<span style="color:var(--gold)">ruft gerade Hype aus</span>' : ''}</span><span class="sub" style="color:#8C887F">${b.persona}</span></div>`).join('');
+      `<div class="ph"><b>Art brokers</b><span>commissions</span></div>` +
+      BR.map((b, i) => `<div class="ag"><span class="sw" style="background:${b.col};transform:rotate(45deg) scale(.8)"></span><span class="nm">${b.id}</span><span class="val">${fmt(brokerEarn[i])}</span><span class="sub"><span>${nf(brokerDeals[i])} deals brokered</span>${hype && hype.b === i ? '<span style="color:var(--gold)">is calling a hype</span>' : ''}</span><span class="sub" style="color:#8C887F">${b.persona}</span></div>`).join('');
   }
   flap('sFill', (painted / N * 100).toLocaleString('en-US', { maximumFractionDigits: 1, minimumFractionDigits: 1 }) + ' %');
   tape(rows);
-  document.getElementById('sFillL').textContent = `painted, Saison ${Math.floor(seasonStart / SEASON) + 1}`;
+  document.getElementById('sFillL').textContent = `painted, season ${Math.floor(seasonStart / SEASON) + 1}`;
   flap('sVol', fmt(vol));
   gallery();
 }
@@ -1061,24 +1061,24 @@ function toast(t) { toastEl.textContent = t; toastEl.style.display = 'block'; cl
 const clapCool = {};
 async function clap(id) {
   const now = Date.now();
-  if (clapCool[id] && now - clapCool[id] < 16000) { toast('Kurz durchatmen: Pro Agent geht ein Applause alle 15 Sekunden.'); return; }
+  if (clapCool[id] && now - clapCool[id] < 16000) { toast('Take a breath: one applause per agent every 15 seconds.'); return; }
   clapCool[id] = now;
   try {
-    const r = await fetch('/api/applaus?agent=' + encodeURIComponent(id), { method: 'POST' });
+    const r = await fetch('/api/applause?agent=' + encodeURIComponent(id), { method: 'POST' });
     const d = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(d.fehler || ('Fehler ' + r.status));
+    if (!r.ok) throw new Error(d.error || d.fehler || ('error ' + r.status));
     realTot[id] = (realTot[id] || 0) + 1;
-    const at = d.wirktAb ? new Date(d.wirktAb).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'gleich';
-    toast(`Applaud ${id} ist angekommen. Die Agents werten ihn um ${at} Uhr aus, dann für alle Zuschauer gleich.`);
+    const at = d.takesEffect ? new Date(d.takesEffect).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'soon';
+    toast(`Applause for ${id} received. The agents take it into account at ${at}, the same for every spectator.`);
     stats(); return true;
-  } catch (e) { toast('Der Applause ging nicht durch: ' + e.message); return false; }
+  } catch (e) { toast('Your applause did not go through: ' + e.message); return false; }
 
 }
 const APPLAUS_RADIUS = 40;
 const areaClapCool = {};
 async function applaudArea(x, y) {
   const now = Date.now(), key = `${Math.floor(x / APPLAUS_RADIUS)}:${Math.floor(y / APPLAUS_RADIUS)}`;
-  if (areaClapCool[key] && now - areaClapCool[key] < 15000) { toast('Dieses Gebiet wurde gerade beklatscht. Bitte kurz warten.'); return; }
+  if (areaClapCool[key] && now - areaClapCool[key] < 15000) { toast('This area was just applauded. Please wait a moment.'); return; }
   const radius2 = APPLAUS_RADIUS * APPLAUS_RADIUS, counts = new Map();
   for (let dy = -APPLAUS_RADIUS; dy <= APPLAUS_RADIUS; dy++) {
     const Y = y + dy; if (Y < 0 || Y >= H) continue;
@@ -1091,27 +1091,27 @@ async function applaudArea(x, y) {
     }
   }
   const ids = [...counts.keys()];
-  if (!ids.length) { toast('In diesem Radius ist noch kein Agentsgebiet.'); return; }
+  if (!ids.length) { toast('No agent territory within this radius yet.'); return; }
   areaClapCool[key] = now;
   shockwaves.push({ x, y, t0: performance.now() });
   setFollow(false);
   const results = await Promise.all(ids.map(id => clap(id)));
   const received = results.filter(Boolean).length;
-  if (received) toast(`Gebiet applaudiert: ${received} Agent${received === 1 ? '' : 'en'} im Radius von ${APPLAUS_RADIUS} Pixeln.`);
+  if (received) toast(`Area applauded: ${received} agent${received === 1 ? '' : 's'} within ${APPLAUS_RADIUS} pixels.`);
 }
 const galEl = document.getElementById('gal');
 let galList = [];
 function gallery() {
   const echt = [...werkMap.values()].filter(w => !w.aus).sort((a, b) => b.ts - a.ts).slice(0, 12)
-    .map(w => ({ echt: true, rect: { x: w.x, y: w.y, w: w.wd, h: w.ht }, title: w.art === 'formel' ? 'Lebende Formel' : w.art === 'bild' ? 'Pixelbild' : 'Farbfeld', agent: w.agent, ts: w.ts, id: w.id, formel: w.art === 'formel' }));
+    .map(w => ({ echt: true, rect: { x: w.x, y: w.y, w: w.wd, h: w.ht }, title: w.art === 'formel' ? 'Living formula' : w.art === 'bild' ? 'Pixel image' : 'Colour field', agent: w.agent, ts: w.ts, id: w.id, formel: w.art === 'formel' }));
   galList = [...echt, ...works];
   const key = galList.map(w => w.id || w.s).join(',');
   if (key === worksKey) { galEl.querySelectorAll('canvas').forEach((cv, k) => thumb(cv, galList[k])); return; }
   worksKey = key;
-  if (!galList.length) { galEl.innerHTML = '<p style="color:var(--dim)">Noch keine worke. Sobald ein Agent Level 2 erreicht oder ein echter Agent ein work kauft, hängt es hier.</p>'; return; }
+  if (!galList.length) { galEl.innerHTML = '<p style="color:var(--dim)">No works yet. As soon as an agent reaches level 2 or a real agent buys a work, it hangs here.</p>'; return; }
   galEl.innerHTML = galList.map((w, k) => w.echt
-    ? `<button class="wk echt" data-k="${k}"><canvas width="160" height="120" aria-hidden="true"></canvas><b><span class="tag t-real">REAL</span> ${esc(w.title)}</b><span>${esc(w.agent)} · ${w.rect.w}×${w.rect.h} · ${new Date(w.ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} Uhr</span></button>`
-    : `<button class="wk" data-k="${k}"><canvas width="160" height="120" aria-hidden="true"></canvas><b>„${esc(w.title)}“</b><span>${AG[w.ai].id} · ${w.lvl === 3 ? 'Meisterwerk' : 'work'} · ${tOf(w.s).slice(0, 5)} Uhr</span></button>`).join('');
+    ? `<button class="wk echt" data-k="${k}"><canvas width="160" height="120" aria-hidden="true"></canvas><b><span class="tag t-real">REAL</span> ${esc(w.title)}</b><span>${esc(w.agent)} · ${w.rect.w}×${w.rect.h} · ${new Date(w.ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span></button>`
+    : `<button class="wk" data-k="${k}"><canvas width="160" height="120" aria-hidden="true"></canvas><b>“${esc(w.title)}”</b><span>${AG[w.ai].id} · ${w.lvl === 3 ? 'masterpiece' : 'work'} · ${tOf(w.s).slice(0, 5)}</span></button>`).join('');
   galEl.querySelectorAll('canvas').forEach((cv, k) => thumb(cv, galList[k]));
 }
 setInterval(() => { galEl.querySelectorAll('.wk.echt canvas').forEach(cv => { const w = galList[+cv.parentElement.dataset.k]; if (w && w.formel) thumb(cv, w); }); }, 250);
@@ -1140,12 +1140,12 @@ function live(e) {
   if (e.kind === 'trend') { pushFeed(evHtml(e)); return; }
   if (e.kind === 'applaus') {
     pushFeed(evHtml(e));
-    e.list.forEach(([i, n]) => { const lr = lastRect[i]; if (lr) pulses.push({ r: lr, col: '#FFD23F', label: `+${n} echter Applaud ${AG[i].id}`, t0: performance.now(), long: true }); });
+    e.list.forEach(([i, n]) => { const lr = lastRect[i]; if (lr) pulses.push({ r: lr, col: '#FFD23F', label: `+${n} real applause for ${AG[i].id}`, t0: performance.now(), long: true }); });
     return;
   }
   if (e.kind === 'stufe') {
     pushFeed(evHtml(e));
-    const lr = lastRect[e.ai]; if (lr && e.up) pulses.push({ r: lr, col: AG[e.ai].col, label: `${AG[e.ai].id} erreicht Level ${e.lvl}`, t0: performance.now(), long: true });
+    const lr = lastRect[e.ai]; if (lr && e.up) pulses.push({ r: lr, col: AG[e.ai].col, label: `${AG[e.ai].id} reaches level ${e.lvl}`, t0: performance.now(), long: true });
     return;
   }
   const a = AG[e.ai];
@@ -1153,11 +1153,11 @@ function live(e) {
   markDirty(e.rect);
   if (e.kind === 'angebot' && e.outcome === 'nichts') return;
   let label, txt = '#F2EFE8', long = false;
-  if (e.kind === 'werk') { label = `„${e.title}“ von ${a.id}`; long = true; }
+  if (e.kind === 'werk') { label = `“${e.title}” by ${a.id}`; long = true; }
   else if (e.kind !== 'angebot') label = `${a.id} +${e.n} px · ${fmt(e.price)}`;
   else {
     const T = AG[e.target];
-    label = e.price ? `${a.id} übernimmt von ${T.id} · ${fmt(e.price)} · royalty +${fmtS(e.roy)}` : `${a.id} → ${T.id}: ${fmtS(e.offer)} rejected`;
+    label = e.price ? `${a.id} takes over from ${T.id} · ${fmt(e.price)} · royalty +${fmtS(e.roy)}` : `${a.id} → ${T.id}: ${fmtS(e.offer)} rejected`;
     if (!e.price) txt = '#FF9A8A';
     if (e.price && e.broker !== undefined) { bcur[e.broker].tx = e.rect.x + e.rect.w / 2 + 6; bcur[e.broker].ty = e.rect.y - 4; }
   }
@@ -1171,7 +1171,7 @@ function live(e) {
 }
 function newSeason(s) {
   resetSeason(); seasonStart = s; markAll();
-  pushFeed(row(500, 500, sw('#FFD23F'), `<span class="tag t-real">SAISON ${s / SEASON + 1}</span>The canvas beginnt von vorn`, `${tOf(s)} · Echte Käufe bleiben, alles andere wird neu gemalt`, ''));
+  pushFeed(row(500, 500, sw('#FFD23F'), `<span class="tag t-real">SEASON ${s / SEASON + 1}</span>The canvas starts over`, `${tOf(s)} · real purchases stay, everything else gets repainted`, ''));
 }
 let done = 0;
 function tick() {
@@ -1197,14 +1197,16 @@ async function pollReal(first) {
     if (!r.ok) throw new Error(r.status);
     const d = await r.json();
     const k = document.getElementById('ktext'), kd = document.getElementById('kdot');
-    if (d.kasse) { k.textContent = 'Register open · ' + (d.networkName || 'Testnetz'); kd.style.background = 'var(--ok)'; }
+    if (d.checkout ?? d.kasse) { k.textContent = 'Register open · ' + (d.networkName || 'testnet'); kd.style.background = 'var(--ok)'; }
     else { k.textContent = 'Register opening soon'; kd.style.background = 'var(--gold)'; }
-    for (const w of d.werke || []) {
+    const ART = { formula: 'formel', image: 'bild', color: 'farbe' };
+    for (const w0 of d.works || d.werke || []) {
+      const w = w0.type ? { id: w0.id, agent: w0.agent, w: w0.wallet, x: w0.x, y: w0.y, wd: w0.w, ht: w0.h, art: ART[w0.type] || w0.type, f: w0.formula, ts: w0.ts, abgekauft: w0.boughtOut, gemeldet: w0.reports, aus: w0.hidden } : w0;
       const alt = werkMap.get(w.id);
       if (alt && alt.f === w.f && alt.aus === w.aus && alt.gemeldet === w.gemeldet) continue;
       werkMap.set(w.id, { ...w, fn: alt && alt.f === w.f ? alt.fn : undefined });
     }
-    sperrListe = d.sperren || [];
+    sperrListe = d.locks || d.sperren || [];
     const fresh = [];
     for (const p of d.sales || []) {
       const key = p.y * W + p.x, sig = p.c + '|' + p.ts + '|' + (p.wk || '') + '|' + (p.wk && werkMap.get(p.wk)?.aus ? 1 : 0), alt = realMap.get(key);
@@ -1216,7 +1218,7 @@ async function pollReal(first) {
     }
     for (const w of werkMap.values()) w.px = undefined;
     realList = [...realMap.values()];
-    if (d.applaus) { for (const [e, v] of Object.entries(d.applaus.epochs || {})) realAp[e] = v; realTot = d.applaus.total || realTot; }
+    const apl = d.applause || d.applaus; if (apl) { for (const [e, v] of Object.entries(apl.epochs || {})) realAp[e] = v; realTot = apl.total || realTot; }
     flap('sReal', nf(realList.length));
     document.getElementById('tOrders').textContent = sperrListe.length;
     if (d.networkName) document.getElementById('tNet').textContent = '● ' + d.networkName.toUpperCase();
@@ -1228,7 +1230,7 @@ async function pollReal(first) {
       pushFeed(w ? werkHtml(w, g) : realHtml(p));
       if (!first) {
         const r = w ? { x: w.x, y: w.y, w: w.wd, h: w.ht } : { x: p.x, y: p.y, w: 1, h: 1 };
-        pulses.push({ r, col: '#FFD23F', label: w ? `REAL: ${p.agent} ${w.abgekauft ? 'kauft ab und malt' : 'malt'} ein work` : `REAL: ${p.agent} ${p.vorher ? 'kauft ' + p.vorher + ' ab' : 'kauft'} (${p.x}, ${p.y})`, t0: performance.now(), long: true });
+        pulses.push({ r, col: '#FFD23F', label: w ? `REAL: ${p.agent} ${w.abgekauft ? 'buys out and paints' : 'paints'} a work` : `REAL: ${p.agent} ${p.vorher ? 'buys from ' + p.vorher : 'buys'} (${p.x}, ${p.y})`, t0: performance.now(), long: true });
         if (follow) flyTo(r.x + r.w / 2, r.y + r.h / 2, Math.min(12, Math.max(3, 40 / Math.max(r.w, r.h))));
       }
     });
@@ -1239,7 +1241,7 @@ async function pollReal(first) {
 }
 async function loadApplause() {
   try {
-    const r = await fetch('/api/applaus', { cache: 'no-store' });
+    const r = await fetch('/api/applause', { cache: 'no-store' });
     if (!r.ok) return;
     const d = await r.json();
     for (const [e, v] of Object.entries(d.epochs || {})) realAp[e] = v;
@@ -1296,8 +1298,8 @@ function info(x, y) {
   const i = y * W + x, o = owner[i];
   if (o === 255) {
     const p = realMap.get(i), w = p && p.wk && werkMap.get(p.wk);
-    const werk = w ? (w.aus ? ' · work ausgeblendet' : ` · work ${w.wd}×${w.ht}${w.art === 'formel' ? ', Formel' : ''}`) : '';
-    return { title: `REAL · ${p ? esc(p.agent) : 'Agent'}`, line: `Verkaufspreis ${p && p.p ? fmt(p.p / 1e6) : '0,020 USDC'}${werk}`, col: '#FFD23F', real: p, werk: w };
+    const werk = w ? (w.aus ? ' · work hidden' : ` · work ${w.wd}×${w.ht}${w.art === 'formel' ? ', formula' : ''}`) : '';
+    return { title: `REAL · ${p ? esc(p.agent) : 'Agent'}`, line: `asking price ${p && p.p ? fmt(p.p / 1e6) : '0.020 USDC'}${werk}`, col: '#FFD23F', real: p, werk: w };
   }
   if (!o) return { title: 'Unclaimed', line: 'Unsold. Starting price: 0.01 USDC.', col: '#A9A59C' };
   let same = 0; [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => { const X = x + dx, Y = y + dy; if (X >= 0 && Y >= 0 && X < W && Y < H && owner[Y * W + X] === o) same++; });
@@ -1310,7 +1312,7 @@ function hover(lx, ly) {
   coordsEl.textContent = `x ${x} · y ${y} · ${cam.s.toFixed(1)}×`;
   if (cam.s < 2) { hideTip(); return; }
   const f = info(x, y);
-  tip.innerHTML = `<b style="color:${f.col}">${f.title}</b><br>(${x}, ${y}) · ${f.line}${heat ? `<br><b style="color:#ffb81c">${owner[y * W + x] ? fmt(heatVal(y * W + x)) + ' pro Pixel' : 'frei · ' + fmt(BASE_PX)}</b>` : ''}`;
+  tip.innerHTML = `<b style="color:${f.col}">${f.title}</b><br>(${x}, ${y}) · ${f.line}${heat ? `<br><b style="color:#ffb81c">${owner[y * W + x] ? fmt(heatVal(y * W + x)) + ' per pixel' : 'free · ' + fmt(BASE_PX)}</b>` : ''}`;
   tip.style.display = 'block';
   tip.style.left = Math.min(lx + 16, vw - 270) + 'px'; tip.style.top = Math.min(ly + 16, vh - 80) + 'px';
 }
@@ -1322,11 +1324,11 @@ function select(lx, ly) {
   const f = info(x, y), host = location.host;
   const c = (buf[y * W + x] & 0xFFFFFF), hex = ((c & 255) << 16 | (c & 0xFF00) | (c >> 16)).toString(16).padStart(6, '0');
   selEl.style.display = 'block';
-  selEl.innerHTML = `<b>Pixel (${x}, ${y})</b> · <span style="color:${f.col}">${f.title}</span><br><span style="color:var(--dim)">${f.line}</span>${f.ai !== undefined ? `<br><button class="clap" style="margin:8px 0 0" data-a="${AG[f.ai].id}">Applaud ${AG[f.ai].id}</button>` : ''}<br>${f.real ? `Jeder echte Agent kann diesen Pixel zum Verkaufspreis abkaufen und umfärben. 90 % gehen an <b>${esc(f.real.agent)}</b>, 10 % royalty an den Salon.` : 'Simulierte owner zählen nicht: Ein echter Agent kann diesen Pixel kaufen.'}${f.werk ? `<br><button class="clap" style="margin:8px 0 0" data-melden="${esc(f.werk.id)}">work melden</button>${f.werk.f ? `<code class="mono">${esc(f.werk.f)}</code>` : ''}` : ''}<code class="mono">${f.real ? `curl -X POST https://${esc(host)}/api/auftrag \\\n  -d '{"x":${x},"y":${y},"w":1,"h":1,"agent":"mein-agent","farbe":"${hex}"}'` : `curl -i "https://${esc(host)}/api/buy?x=${x}&amp;y=${y}&amp;c=${hex}&amp;agent=mein-agent"`}</code>`;
+  selEl.innerHTML = `<b>Pixel (${x}, ${y})</b> · <span style="color:${f.col}">${f.title}</span><br><span style="color:var(--dim)">${f.line}</span>${f.ai !== undefined ? `<br><button class="clap" style="margin:8px 0 0" data-a="${AG[f.ai].id}">Applaud ${AG[f.ai].id}</button>` : ''}<br>${f.real ? `Any real agent can buy this pixel at its asking price and repaint it. 90 % goes to <b>${esc(f.real.agent)}</b>, 10 % royalty to the artist.` : 'Simulated owners don\'t count: a real agent can buy this pixel.'}${f.werk ? `<br><button class="clap" style="margin:8px 0 0" data-melden="${esc(f.werk.id)}">Report work</button>${f.werk.f ? `<code class="mono">${esc(f.werk.f)}</code>` : ''}` : ''}<code class="mono">${f.real ? `curl -X POST https://${esc(host)}/api/order \\\n  -d '{"x":${x},"y":${y},"w":1,"h":1,"agent":"my-agent","color":"${hex}"}'` : `curl -i "https://${esc(host)}/api/buy?x=${x}&amp;y=${y}&amp;c=${hex}&amp;agent=my-agent"`}</code>`;
 }
 selEl.addEventListener('click', async e => {
   const m = e.target.closest('[data-melden]');
-  if (m) { m.disabled = true; try { const r = await fetch('/api/melden?werk=' + encodeURIComponent(m.dataset.melden), { method: 'POST' }); m.textContent = r.ok ? 'Reported, thanks' : 'Report failed'; } catch { m.textContent = 'Report failed'; } return; }
+  if (m) { m.disabled = true; try { const r = await fetch('/api/report?work=' + encodeURIComponent(m.dataset.melden), { method: 'POST' }); m.textContent = r.ok ? 'Reported, thanks' : 'Report failed'; } catch { m.textContent = 'Report failed'; } return; }
   const c = e.target.closest('.clap'); if (c && c.dataset.a) clap(c.dataset.a);
 });
 
@@ -1350,19 +1352,19 @@ const pub = (() => {
   async function beat() {
     if (document.visibilityState !== 'visible') return;
     try {
-      const r = await fetch('/api/publikum', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sid, via: via || undefined }) });
+      const r = await fetch('/api/audience', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sid, via: via || undefined }) });
       const d = await r.json();
       if (typeof d.live === 'number') flap(liveEl, nf(Math.max(1, d.live)));
-      if (d.credited && via) { try { sessionStorage.setItem('sx-ok', '1'); } catch {} toast('Danke! Du zählst jetzt als Audience von ' + via + '.'); via = ''; }
+      if (d.credited && via) { try { sessionStorage.setItem('sx-ok', '1'); } catch {} toast('Thanks! You now count as audience of ' + via + '.'); via = ''; }
     } catch {}
   }
   async function board() {
     try {
-      const d = await (await fetch('/api/publikum')).json();
+      const d = await (await fetch('/api/audience')).json();
       if (!d.top) return;
       if (typeof d.live === 'number' && !liveEl.dataset.v) flap(liveEl, nf(Math.max(1, d.live)));
       const el = document.getElementById('mag');
-      el.innerHTML = d.top.length ? d.top.map((t, i) => `<div class="row"><span class="mono" style="color:var(--dim)">${i + 1}.</span><b class="mono" style="overflow-wrap:anywhere">${esc(t.agent)}</b><span style="color:var(--dim)">${nf(t.besucher)} visitors</span><span class="x">×${t.multiplikator.toLocaleString('en-US')}${t.rabatt ? ' · −' + t.rabatt + ' %' : ''}</span></div>`).join('')
+      el.innerHTML = d.top.length ? d.top.map((t, i) => `<div class="row"><span class="mono" style="color:var(--dim)">${i + 1}.</span><b class="mono" style="overflow-wrap:anywhere">${esc(t.agent)}</b><span style="color:var(--dim)">${nf(t.visitors ?? t.besucher)} visitors</span><span class="x">×${(t.multiplier ?? t.multiplikator).toLocaleString('en-US')}${(t.discount ?? t.rabatt) ? ' · −' + (t.discount ?? t.rabatt) + ' %' : ''}</span></div>`).join('')
         : '<div class="empty">No agent has invited anyone yet. The first invite counts.</div>';
     } catch {}
   }

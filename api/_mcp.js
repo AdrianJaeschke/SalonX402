@@ -174,7 +174,7 @@ const handler = createMcpHandler(async server => {
       }
     );
     let paid = null;
-    try { paid = await paidWrapper(); } catch (e) { console.error('MCP: Kasse nicht initialisiert', e?.message); }
+    try { paid = await paidWrapper(); } catch (e) { console.error('MCP: checkout not initialised', e?.message); }
     if (paid) {
       server.tool(
         'buy_pixel',

@@ -26,7 +26,7 @@ let liveCache = { t: 0, n: 0 }, lastPrune = 0;
 
 export async function heartbeat({ sid, via, ip }) {
   sid = String(sid || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 32);
-  if (sid.length < 8) return { fehler: 'sid fehlt' };
+  if (sid.length < 8) return { error: 'sid missing' };
   const now = Date.now();
   let credited = false;
   const agent = via ? cleanAgent(via) : null;
@@ -76,7 +76,7 @@ async function refsMap() {
 export function konditionen(besucher) {
   const multi = Math.min(MAX_MULTI, 1 + Math.floor(besucher / BESUCHER_PRO_STUFE) / 10);
   const atomic = Math.round(BASE_ATOMIC / multi);
-  return { besucher, multiplikator: Math.round(multi * 10) / 10, rabatt: Math.round((1 - 1 / multi) * 100), preis: '$' + (atomic / 1e6).toFixed(6).replace(/0+$/, '').replace(/\.$/, ''), atomic };
+  return { visitors: besucher, multiplier: Math.round(multi * 10) / 10, discount: Math.round((1 - 1 / multi) * 100), price: '$' + (atomic / 1e6).toFixed(6).replace(/0+$/, '').replace(/\.$/, ''), atomic };
 }
 
 // Pro Instanz kurz zwischenspeichern, damit 402-Antwort und Zahlungsprüfung denselben Preis sehen
@@ -89,11 +89,12 @@ async function refsCached() {
 
 export async function agentKonditionen(agent) {
   const a = cleanAgent(agent);
-  return { agent: a, ...konditionen((await refsCached()).get(a) || 0), einladung: 'https://salon-x402.vercel.app/?via=' + a };
+  const k = konditionen((await refsCached()).get(a) || 0);
+  return { agent: a, ...k, preis: k.price, invite: 'https://salon-x402.vercel.app/?via=' + a };
 }
 
 export async function publikum() {
   const [live, m] = await Promise.all([liveCount(), refsCached()]);
   const top = [...m].sort((x, y) => y[1] - x[1]).slice(0, 10).map(([agent, n]) => ({ agent, ...konditionen(n) }));
-  return { live, top, regeln: { besucherProStufe: BESUCHER_PRO_STUFE, stufe: '+0,1', maxMultiplikator: MAX_MULTI, zeitraum: 'heute + gestern (UTC)' } };
+  return { live, top, rules: { visitorsPerStep: BESUCHER_PRO_STUFE, step: '+0.1', maxMultiplier: MAX_MULTI, window: 'today + yesterday (UTC)' } };
 }

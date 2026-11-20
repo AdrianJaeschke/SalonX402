@@ -40,7 +40,7 @@ function tokenize(src) {
     re.lastIndex = pos;
     if (/^\s*$/.test(src.slice(pos))) break;
     m = re.exec(src);
-    if (!m) throw new Error(`Unbekanntes Zeichen an Stelle ${pos + 1}: "${src.slice(pos).trim()[0]}"`);
+    if (!m) throw new Error(`Unknown character at position ${pos + 1}: "${src.slice(pos).trim()[0]}"`);
     pos = re.lastIndex;
     if (m[1] !== undefined) out.push({ k: 'num', v: parseFloat(m[1]) });
     else if (m[2] !== undefined) out.push({ k: 'id', v: m[2].toLowerCase() });
@@ -50,18 +50,18 @@ function tokenize(src) {
 }
 
 export function parse(src) {
-  if (typeof src !== 'string' || !src.trim()) throw new Error('Formel fehlt');
-  if (src.length > MAX_LEN) throw new Error(`Formel zu lang (max. ${MAX_LEN} Zeichen)`);
+  if (typeof src !== 'string' || !src.trim()) throw new Error('Formula missing');
+  if (src.length > MAX_LEN) throw new Error(`Formula too long (max. ${MAX_LEN} characters)`);
   const tk = tokenize(src);
   let p = 0, nodes = 0;
   const peek = () => tk[p], isOp = v => tk[p] && tk[p].k === 'op' && tk[p].v === v;
-  const eat = v => { if (!isOp(v)) throw new Error(`"${v}" erwartet`); p++; };
-  const node = o => { if (++nodes > MAX_NODES) throw new Error('Formel zu komplex'); return o; };
+  const eat = v => { if (!isOp(v)) throw new Error(`"${v}" expected`); p++; };
+  const node = o => { if (++nodes > MAX_NODES) throw new Error('Formula too complex'); return o; };
   const bin = (next, ops) => () => { let a = next(); while (tk[p] && tk[p].k === 'op' && ops.includes(tk[p].v)) { const op = tk[p++].v; a = node({ t: 'bin', op, a, b: next() }); } return a; };
   function expr() { const c = or(); if (isOp('?')) { p++; const a = expr(); eat(':'); const b = expr(); return node({ t: 'if', c, a, b }); } return c; }
   const atom = () => {
     const k = peek();
-    if (!k) throw new Error('Formel endet zu früh');
+    if (!k) throw new Error('Formula ends too early');
     if (k.k === 'num') { p++; return node({ t: 'num', v: k.v }); }
     if (isOp('(')) { p++; const e = expr(); eat(')'); return e; }
     if (k.k === 'id') {
@@ -72,15 +72,15 @@ export function parse(src) {
         if (!isOp(')')) { args.push(expr()); while (isOp(',')) { p++; args.push(expr()); } }
         eat(')');
         const want = FN[k.v] ? FN[k.v][0] : COLOR[k.v];
-        if (want === undefined) throw new Error(`Unbekannte Funktion "${k.v}"`);
-        if (args.length !== want) throw new Error(`${k.v} braucht ${want} Werte`);
+        if (want === undefined) throw new Error(`Unknown function "${k.v}"`);
+        if (args.length !== want) throw new Error(`${k.v} needs ${want} values`);
         return node({ t: COLOR[k.v] !== undefined ? 'col' : 'fn', f: k.v, args });
       }
       if (k.v === 'e') return node({ t: 'num', v: Math.E });
-      if (!VARS.includes(k.v)) throw new Error(`Unbekannte Variable "${k.v}"`);
+      if (!VARS.includes(k.v)) throw new Error(`Unknown variable "${k.v}"`);
       return node({ t: 'var', v: k.v });
     }
-    throw new Error(`Unerwartet: "${k.v}"`);
+    throw new Error(`Unexpected: "${k.v}"`);
   };
   const pow = () => { const a = atom(); if (isOp('^')) { p++; return node({ t: 'bin', op: '^', a, b: unary() }); } return a; };
   function unary() { if (isOp('-') || isOp('!')) { const op = tk[p++].v; return node({ t: 'un', op, a: unary() }); } return pow(); }
@@ -88,7 +88,7 @@ export function parse(src) {
   const cmp = () => { const a = add(); if (tk[p] && tk[p].k === 'op' && ['<', '>', '<=', '>=', '==', '!='].includes(tk[p].v)) { const op = tk[p++].v; return node({ t: 'bin', op, a, b: add() }); } return a; };
   const and = bin(cmp, ['&&']), or = bin(and, ['||']);
   const ast = expr();
-  if (p < tk.length) throw new Error(`Unerwartet: "${tk[p].v}"`);
+  if (p < tk.length) throw new Error(`Unexpected: "${tk[p].v}"`);
   return ast;
 }
 

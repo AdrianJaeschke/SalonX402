@@ -11,9 +11,11 @@ const redis = R_URL && R_TOKEN ? new Redis({ url: R_URL, token: R_TOKEN }) : nul
 export const SIZE = 1000;
 export const T0 = Date.UTC(2026, 10, 19, 20, 0, 0);
 export const EPOCH_MS = 600000; // 10 Minuten = 400 Markt-Takte
-export const AGENTS = ['sonnen-maler', 'pixel-gaertner', 'galerie-agent-12', 'sterne-sammler', 'wellen-agent', 'glitch-bot', 'flipper-9000', 'auktionator-x'];
+export const AGENTS = ['sun-painter', 'pixel-gardener', 'gallery-agent-12', 'star-collector', 'wave-agent', 'glitch-bot', 'flipper-9000', 'auctioneer-x'];
+// Old (German) agent names, still used in stored applause
+export const AGENT_ALIAS = { 'sonnen-maler': 'sun-painter', 'pixel-gaertner': 'pixel-gardener', 'galerie-agent-12': 'gallery-agent-12', 'sterne-sammler': 'star-collector', 'wellen-agent': 'wave-agent', 'auktionator-x': 'auctioneer-x' };
 export const NETWORK = process.env.X402_NETWORK || 'eip155:84532'; // Base Sepolia (Testnetz)
-export const NETWORK_NAME = NETWORK === 'eip155:8453' ? 'Base' : 'Base Sepolia (Testnetz)';
+export const NETWORK_NAME = NETWORK === 'eip155:8453' ? 'Base' : 'Base Sepolia (testnet)';
 export const PAY_TO = (process.env.PAY_TO || '').trim();
 export const PRICE = process.env.PIXEL_PRICE || '$0.01';
 export const FACILITATOR = process.env.FACILITATOR_URL || 'https://x402.org/facilitator';
@@ -52,7 +54,7 @@ async function migrate() {
   cursor = undefined;
   for (let p = 0; p < 20; p++) {
     const r = await list({ prefix: 'ap/', limit: 1000, cursor });
-    for (const b of r.blobs) { const [, e, agent] = b.pathname.split('/'); if (AGENTS.includes(agent)) addClap(d, +e, agent, 1); }
+    for (const b of r.blobs) { const [, e, a0] = b.pathname.split('/'); const agent = AGENT_ALIAS[a0] || a0; if (AGENTS.includes(agent)) addClap(d, +e, agent, 1); }
     if (!r.hasMore) break;
     cursor = r.cursor;
   }
@@ -76,7 +78,7 @@ async function blobFresh() {
     const h2 = await head(STATE);
     if (h1.etag === h2.etag) return { data, etag: h1.etag };
   }
-  throw new Error('Register ändert sich gerade zu schnell');
+  throw new Error('Register is changing too fast right now');
 }
 export async function readFresh() {
   if (!redis) return blobFresh();
@@ -86,13 +88,13 @@ export async function readFresh() {
     if ((r.data.ver || 0) >= want) return r;
     await sleep(250 + t * 100);
   }
-  throw new Error('Register noch nicht aktuell, bitte gleich nochmal');
+  throw new Error('Register not up to date yet, please retry');
 }
 async function lockedUpdate(mutate) {
   const me = 'L' + randomBytes(8).toString('hex');
   let ok = false;
   for (let t = 0; t < 60 && !ok; t++) { ok = !!(await redis.set('reg:lock', me, { nx: true, px: 20000 })); if (!ok) await sleep(150); }
-  if (!ok) throw new Error('Register gerade ausgelastet');
+  if (!ok) throw new Error('Register busy, please retry');
   try {
     const { data } = await readFresh();
     for (const n of NACHTRAG) if (!data.sales.some(s => s.x === n.x && s.y === n.y)) data.sales.push(n);
@@ -126,7 +128,7 @@ export async function update(mutate) {
       throw e;
     }
   }
-  throw new Error('Register gerade ausgelastet');
+  throw new Error('Register busy, please retry');
 }
 export async function readCached() {
   if (cache && Date.now() - cache.at < 10000) return cache.data;
