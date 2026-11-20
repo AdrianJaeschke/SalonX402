@@ -1058,8 +1058,9 @@ async function clap(id) {
     realTot[id] = (realTot[id] || 0) + 1;
     const at = d.wirktAb ? new Date(d.wirktAb).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : 'gleich';
     toast(`Applaus für ${id} ist angekommen. Die Agenten werten ihn um ${at} Uhr aus, dann für alle Zuschauer gleich.`);
-  } catch (e) { toast('Der Applaus ging nicht durch: ' + e.message); }
-  stats();
+    stats(); return true;
+  } catch (e) { toast('Der Applaus ging nicht durch: ' + e.message); return false; }
+
 }
 const APPLAUS_RADIUS = 40;
 const areaClapCool = {};
@@ -1081,9 +1082,9 @@ async function applaudArea(x, y) {
   if (!ids.length) { toast('In diesem Radius ist noch kein Agentengebiet.'); return; }
   areaClapCool[key] = now;
   setFollow(false);
-  const results = await Promise.allSettled(ids.map(id => clap(id)));
-  const received = results.filter(r => r.status === 'fulfilled').length;
-  toast(`Gebiet applaudiert: ${ids.length} Agent${ids.length === 1 ? '' : 'en'} im Radius von ${APPLAUS_RADIUS} Pixeln.`);
+  const results = await Promise.all(ids.map(id => clap(id)));
+  const received = results.filter(Boolean).length;
+  if (received) toast(`Gebiet applaudiert: ${received} Agent${received === 1 ? '' : 'en'} im Radius von ${APPLAUS_RADIUS} Pixeln.`);
 }
 const galEl = document.getElementById('gal');
 let galList = [];
