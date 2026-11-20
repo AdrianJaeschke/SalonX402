@@ -1,0 +1,204 @@
+// Werke und Weiterverkauf: echte Agenten kaufen ganze Flächen, malen eigene Pixelbilder oder Formeln
+// und kaufen anderen Agenten deren Pixel ab. Bezahlt wird ohne Treuhand: jeder Teil geht per x402
+// direkt an seinen Empfänger (90 % an den bisherigen Besitzer, 10 % Tantieme + freie Pixel an den Salon).
+import { getCache } from '@vercel/functions';
+import { randomBytes } from 'node:crypto';
+import { verifyMessage } from 'viem';
+import { compile, toHex } from '../public/formel.js';
+import { SIZE, PAY_TO, readFresh, readCached, update, cleanAgent } from './_register.js';
+import { agentKonditionen } from './_publikum.js';
+
+export const MAX_SEITE = 32;               // Werke bis 32 × 32 Pixel
+export const FRIST_MS = 15 * 60_000;       // alle Teile innerhalb von 15 Minuten bezahlen
+export const TANTIEME = 0.10;
+export const MIN_PREIS = 1000, MAX_PREIS = 1_000_000_000; // 0,001 bis 1000 USDC (6 Nachkommastellen)
+const SALON = (PAY_TO || '').toLowerCase();
+const cache = getCache({ namespace: 'salon-auftrag' });
+
+export const wallet = a => (/^0x[0-9a-fA-F]{40}$/.test(String(a || '')) ? String(a).toLowerCase() : null);
+export const usdc = a => (a / 1e6).toFixed(6).replace(/0+$/, '').replace(/\.$/, '');
+// Angebotspreis eines echten Pixels: vom Besitzer gesetzt, sonst doppelter letzter Kaufpreis
+export const ask = s => s.p || (s.lp || 10000) * 2;
+
+class Fehler extends Error { constructor(msg, status = 400, extra) { super(msg); this.status = status; this.extra = extra; } }
+export { Fehler };
+
+function index(d) { const m = new Map(); for (const s of d.sales) m.set(s.y * SIZE + s.x, s); return m; }
+function aktiveSperren(d, ohne) {
+  const now = Date.now(), m = new Map();
+  for (const [id, o] of Object.entries(d.auftraege || {})) {
+    if (id === ohne || o.frist < now) continue;
+    for (let j = 0; j < o.ht; j++) for (let i = 0; i < o.wd; i++) m.set((o.y + j) * SIZE + o.x + i, id);
+  }
+  return m;
+}
+
+// Farben aus Pixelbild, Formel oder Einzelfarbe
+function farben(spec, wd, ht, x, y) {
+  const n = wd * ht;
+  if (spec.formel) {
+    let f;
+    try { f = compile(String(spec.formel)); } catch (e) { throw new Fehler('Formel ungültig: ' + e.message); }
+    let out = '';
+    for (let j = 0; j < ht; j++) for (let i = 0; i < wd; i++) out += toHex(f(x + i, y + j, i, j, wd, ht, 0));
+    return { art: 'formel', f: String(spec.formel).trim(), c: out };
+  }
+  if (spec.pixel != null) {
+    const arr = Array.isArray(spec.pixel) ? spec.pixel.map(v => String(v).replace('#', '')) : String(spec.pixel).replace(/[#,\s]/g, '').match(/.{1,6}/g) || [];
+    if (arr.length !== n) throw new Fehler(`pixel braucht genau ${n} Farben (${wd} × ${ht}, zeilenweise), bekommen: ${arr.length}`);
+    if (!arr.every(v => /^[0-9a-fA-F]{6}$/.test(v))) throw new Fehler('pixel: nur Hexfarben wie ffd23f');
+    return { art: 'bild', c: arr.join('').toLowerCase() };
+  }
+  const c = String(spec.farbe || spec.c || '').replace('#', '');
+  if (!/^[0-9a-fA-F]{6}$/.test(c)) throw new Fehler('Gib pixel (Hexfarben), formel oder farbe an');
+  return { art: 'farbe', c: c.toLowerCase().repeat(n) };
+}
+
+// Plant einen Auftrag: welche Pixel frei sind, wem die anderen gehören, wer wie viel bekommt
+export async function planen(spec) {
+  const x = Number.parseInt(spec.x, 10), y = Number.parseInt(spec.y, 10);
+  const wd = Number.parseInt(spec.w ?? spec.width ?? 1, 10), ht = Number.parseInt(spec.h ?? spec.height ?? 1, 10);
+  if (![x, y, wd, ht].every(Number.isInteger) || x < 0 || y < 0 || wd < 1 || ht < 1 || wd > MAX_SEITE || ht > MAX_SEITE || x + wd > SIZE || y + ht > SIZE)
+    throw new Fehler(`Fläche ungültig: x, y ab 0, w und h von 1 bis ${MAX_SEITE}, alles innerhalb von 1000 × 1000`);
+  const agent = cleanAgent(spec.agent);
+  const bild = farben(spec, wd, ht, x, y);
+  const d = await readCached();
+  const idx = index(d), sperren = aktiveSperren(d), versteckt = new Set((d.werke || []).filter(w => w.aus).map(w => w.id));
+  const frei = (await agentKonditionen(agent)).atomic;
+  const teile = new Map(); // wallet -> betrag
+  const add = (w, a) => teile.set(w, (teile.get(w) || 0) + a);
+  let nFrei = 0, nAbkauf = 0;
+  const snap = [];
+  for (let j = 0; j < ht; j++) for (let i = 0; i < wd; i++) {
+    const k = (y + j) * SIZE + x + i;
+    if (sperren.has(k)) throw new Fehler(`Pixel (${x + i}, ${y + j}) steckt gerade in einem anderen bezahlten Auftrag. In ein paar Minuten nochmal versuchen.`, 409);
+    const s = idx.get(k);
+    if (!s) { add(SALON, frei); nFrei++; snap.push([k, 0, 0]); continue; }
+    const a = ask(s), w = wallet(s.w);
+    const t = Math.round(a * TANTIEME);
+    if (!w || w === SALON || (s.wk && versteckt.has(s.wk))) add(SALON, a); else { add(w, a - t); add(SALON, t); }
+    nAbkauf++; snap.push([k, s.w || '', a]);
+  }
+  if (teile.size > 6) throw new Fehler('Zu viele verschiedene Besitzer in dieser Fläche (max. 5). Bitte kleiner wählen.');
+  // Salon-Teil zuerst, dann die Besitzer
+  const liste = [...teile].sort((p, q) => (p[0] === SALON ? -1 : q[0] === SALON ? 1 : 0)).filter(([, b]) => b > 0);
+  const id = randomBytes(6).toString('hex');
+  const now = Date.now();
+  return {
+    id, agent, x, y, wd, ht, ...bild, frei, erstellt: now, frist: now + FRIST_MS, nFrei, nAbkauf, snap,
+    teile: liste.map(([an, betrag], i) => ({ nr: i + 1, an, betrag, salon: an === SALON, bezahlt: false, tx: null }))
+  };
+}
+
+export function oeffentlich(o, base = '') {
+  const offen = o.teile.filter(t => !t.bezahlt);
+  return {
+    auftrag: o.id, agent: o.agent, flaeche: { x: o.x, y: o.y, w: o.wd, h: o.ht }, art: o.art, ...(o.f ? { formel: o.f } : {}),
+    freiePixel: o.nFrei, abgekauftePixel: o.nAbkauf, frist: new Date(o.frist).toISOString(),
+    gesamt: usdc(o.teile.reduce((a, t) => a + t.betrag, 0)) + ' USDC',
+    teile: o.teile.map(t => ({ teil: t.nr, an: t.salon ? 'Salon (freie Pixel + 10 % Tantieme)' : t.an, betrag: usdc(t.betrag) + ' USDC', bezahlt: t.bezahlt, ...(t.tx ? { tx: t.tx } : {}), ...(!t.bezahlt ? { zahlen: `${base}/api/auftrag/zahlen?id=${o.id}&teil=${t.nr}` } : {}) })),
+    status: o.fertig ? 'fertig' : offen.length === o.teile.length ? 'offen' : 'teilweise bezahlt',
+    hinweis: o.fertig ? 'Das Werk hängt auf der Leinwand.' : 'Bezahle jeden offenen Teil per x402 (GET auf die zahlen-URL). Erst wenn alle Teile bezahlt sind, gehört dir die Fläche. Nicht bezahlte Aufträge verfallen nach Ablauf der Frist; bereits bezahlte Teile bleiben beim Empfänger.'
+  };
+}
+
+export async function speichern(o) { await cache.set('a:' + o.id, o, { ttl: 1800, name: 'auftrag' }); }
+
+// Auftrag laden: erst aus dem Register (nach der ersten Zahlung), sonst aus dem Laufzeit-Cache
+const memo = new Map();
+export async function laden(id, frisch) {
+  id = String(id || '').replace(/[^0-9a-f]/g, '').slice(0, 12);
+  if (!id) return null;
+  const m = memo.get(id);
+  if (!frisch && m && Date.now() - m.at < 5000) return m.o;
+  const d = frisch ? (await readFresh()).data : await readCached();
+  let o = d.auftraege?.[id] || d.fertig?.[id] || await cache.get('a:' + id);
+  if (o) memo.set(id, { o, at: Date.now() });
+  if (memo.size > 500) memo.clear();
+  return o || null;
+}
+
+// Vor einer Zahlung: ist der Auftrag noch gültig, hat sich an den Pixeln nichts geändert?
+export async function pruefen(id, nr, frisch) {
+  const o = await laden(id, frisch);
+  if (!o) throw new Fehler('Auftrag nicht gefunden oder abgelaufen. Lege einen neuen an: POST /api/auftrag', 404);
+  if (o.fertig) throw new Fehler('Auftrag ist schon fertig', 409);
+  if (o.frist < Date.now()) throw new Fehler('Frist abgelaufen. Lege einen neuen Auftrag an.', 410);
+  const t = o.teile.find(t => t.nr === Number(nr));
+  if (!t) throw new Fehler('Diesen Teil gibt es nicht', 404);
+  if (t.bezahlt) throw new Fehler('Dieser Teil ist schon bezahlt', 409);
+  const d = frisch ? (await readFresh()).data : await readCached();
+  const idx = index(d), sperren = aktiveSperren(d, o.id);
+  for (const [k, w, a] of o.snap) {
+    if (sperren.has(k)) throw new Fehler('Ein Pixel steckt inzwischen in einem anderen Auftrag', 409);
+    const s = idx.get(k);
+    if (!w && !a) { if (s) throw new Fehler(`Pixel (${k % SIZE}, ${Math.floor(k / SIZE)}) wurde inzwischen verkauft. Lege einen neuen Auftrag an.`, 409); continue; }
+    if (!s || (s.w || '') !== w || ask(s) !== a) throw new Fehler(`Besitzer oder Preis von Pixel (${k % SIZE}, ${Math.floor(k / SIZE)}) hat sich geändert. Lege einen neuen Auftrag an.`, 409);
+  }
+  return { o, t };
+}
+
+// Nach einer erfolgreichen Zahlung: Teil abhaken, wenn alles bezahlt ist, die Fläche übergeben
+export async function verbuchen(id, nr, payer, tx) {
+  const vorlage = await laden(id);
+  return update(d => {
+    d.auftraege ||= {}; d.werke ||= []; d.fertig ||= {};
+    const now = Date.now();
+    for (const [k, o] of Object.entries(d.auftraege)) if (o.frist < now - 3600_000) delete d.auftraege[k];
+    for (const [k, o] of Object.entries(d.fertig)) if (o.erstellt < now - 86400_000) delete d.fertig[k];
+    const o = d.auftraege[id] || (vorlage && !vorlage.fertig ? structuredClone(vorlage) : null);
+    if (!o) { console.error('Zahlung ohne Auftrag', id, nr, tx); return { abort: true, grund: 'auftrag fehlt' }; }
+    const t = o.teile.find(t => t.nr === Number(nr));
+    if (!t || t.bezahlt) return { abort: true, grund: 'teil schon bezahlt' };
+    t.bezahlt = true; t.tx = tx || ''; t.von = wallet(payer) || '';
+    if (o.teile.some(t => !t.bezahlt)) { d.auftraege[id] = o; return { ok: true, fertig: false, o }; }
+    // Übergabe
+    const kauf = wallet(payer) || o.teile.find(t => t.von)?.von || '';
+    const fl = new Set(); for (let j = 0; j < o.ht; j++) for (let i = 0; i < o.wd; i++) fl.add((o.y + j) * SIZE + o.x + i);
+    const alt = new Map(o.snap.map(([k, w, a]) => [k, a]));
+    d.sales = d.sales.filter(s => !fl.has(s.y * SIZE + s.x));
+    let n = 0;
+    for (let j = 0; j < o.ht; j++) for (let i = 0; i < o.wd; i++, n++) {
+      const k = (o.y + j) * SIZE + o.x + i, a = alt.get(k);
+      const lp = a || o.frei || 10000;
+      d.sales.push({ x: o.x + i, y: o.y + j, c: o.c.slice(n * 6, n * 6 + 6), agent: o.agent, tx: tx || '', ts: now, w: kauf, lp, wk: o.id });
+    }
+    d.werke = d.werke.filter(w => d.sales.some(s => s.wk === w.id) || w.id === o.id);
+    d.werke.push({ id: o.id, agent: o.agent, w: kauf, x: o.x, y: o.y, wd: o.wd, ht: o.ht, art: o.art, ...(o.f ? { f: o.f } : {}), ts: now, abgekauft: o.nAbkauf, gemeldet: 0 });
+    o.fertig = true; delete d.auftraege[id]; d.fertig[id] = { ...o, snap: [] };
+    return { ok: true, fertig: true, o };
+  });
+}
+
+// Besitzer setzt seinen Verkaufspreis (signierte Nachricht, kein Passwort nötig)
+export const preisNachricht = (x, y, w, h, atomic, ts) => `salon-x402 preis ${x},${y},${w},${h} ${atomic} ${ts}`;
+export async function preisSetzen(b) {
+  const x = +b.x, y = +b.y, w = +(b.w ?? 1), h = +(b.h ?? 1), ts = +b.ts;
+  const atomic = Math.round(parseFloat(String(b.preis).replace('$', '')) * 1e6);
+  const wal = wallet(b.wallet);
+  if (![x, y, w, h].every(Number.isInteger) || w < 1 || h < 1 || w > 100 || h > 100) throw new Fehler('Fläche ungültig (max. 100 × 100)');
+  if (!(atomic >= MIN_PREIS && atomic <= MAX_PREIS)) throw new Fehler('preis zwischen 0.001 und 1000 USDC');
+  if (!wal) throw new Fehler('wallet fehlt');
+  if (!(Math.abs(Date.now() - ts) < 600_000)) throw new Fehler('ts (Millisekunden) muss aktuell sein, höchstens 10 Minuten alt');
+  const ok = await verifyMessage({ address: wal, message: preisNachricht(x, y, w, h, atomic, ts), signature: b.signatur || b.signature }).catch(() => false);
+  if (!ok) throw new Fehler('Signatur passt nicht zur Wallet. Signiere genau: ' + preisNachricht(x, y, w, h, atomic, ts), 401);
+  const r = await update(d => {
+    let n = 0;
+    for (const s of d.sales) if (s.x >= x && s.x < x + w && s.y >= y && s.y < y + h && (s.w || '') === wal) { s.p = atomic; n++; }
+    return { ok: true, geaendert: n };
+  });
+  return { ...r, preis: usdc(atomic) + ' USDC' };
+}
+
+// Admin (die Künstlerin) blendet Werke aus, signiert mit ihrer Salon-Wallet
+export const adminNachricht = (werk, aus, ts) => `salon-x402 admin ${werk} ${aus ? 'aus' : 'an'} ${ts}`;
+export async function adminSetzen(b) {
+  const ts = +b.ts, werk = String(b.werk || '').replace(/[^0-9a-f]/g, ''), aus = !!b.aus;
+  if (!(Math.abs(Date.now() - ts) < 600_000)) throw new Fehler('Signatur zu alt');
+  const ok = SALON && await verifyMessage({ address: SALON, message: adminNachricht(werk, aus, ts), signature: b.signatur }).catch(() => false);
+  if (!ok) throw new Fehler('Nur die Salon-Wallet darf das', 401);
+  return update(d => { const w = (d.werke || []).find(w => w.id === werk); if (!w) return { abort: true, fehler: 'Werk nicht gefunden' }; w.aus = aus; return { ok: true, werk, aus }; });
+}
+export async function melden(ids) {
+  return update(d => { for (const [id, n] of ids) { const w = (d.werke || []).find(w => w.id === id); if (w) w.gemeldet = (w.gemeldet || 0) + n; } });
+}

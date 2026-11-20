@@ -7,6 +7,7 @@ import { waitUntil } from '@vercel/functions';
 import { ogImage } from './_og.js';
 import { mcpHandler } from './_mcp.js';
 import { heartbeat, publikum, agentKonditionen, HAS_REDIS } from './_publikum.js';
+import { planen, speichern, laden, pruefen, verbuchen, oeffentlich, preisSetzen, adminSetzen, melden, ask, usdc, Fehler, MAX_SEITE, preisNachricht } from './_werke.js';
 import { SIZE, T0, EPOCH_MS, AGENTS, NETWORK, NETWORK_NAME, PAY_TO, PRICE, FACILITATOR, KASSE_OFFEN, HAS_BLOB, sleep, empty, addClap, readFresh, readCached, update, recordSale, cleanAgent } from './_register.js';
 
 function parse(c) {
@@ -17,6 +18,7 @@ function parse(c) {
   const ok = Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < SIZE && y < SIZE && /^[0-9a-f]{6}$/.test(col);
   return { ok, x, y, c: col, agent };
 }
+const ipOf = c => (c.req.header('x-forwarded-for') || '').split(',')[0].trim() || 'unbekannt';
 const hasPayment = c => !!(c.req.header('payment-signature') || c.req.header('x-payment'));
 function applausView(d) {
   const eNow = Math.floor((Date.now() - T0) / EPOCH_MS), epochs = {};
@@ -31,10 +33,13 @@ app.get('/info', c => c.json({
   network: NETWORK,
   networkName: NETWORK_NAME,
   price: PRICE,
+  payTo: PAY_TO,
   size: SIZE,
   kaufen: '/api/buy?x=0..999&y=0..999&c=rrggbb&agent=name',
   anleitung: '/llms.txt',
   mcp: '/api/mcp',
+  werk: 'POST /api/auftrag {x,y,w,h,agent, pixel|formel|farbe} – Flächen bis 32 × 32 kaufen, auch fremde Pixel abkaufen und umfärben',
+  preisSetzen: 'POST /api/preis-setzen {x,y,w,h,preis,wallet,ts,signatur} – Verkaufspreis deiner Pixel festlegen',
   deinPreis: '/api/preis?agent=name',
   publikum: '/api/publikum',
   multiplikator: 'Bring Menschen mit deinem Einladungslink /?via=agent-name in den Salon. Alle 2 Besucher (mind. 1 Minute zugeschaut, 1 pro Mensch und Tag) +0,1 Multiplikator, bis x2 = halber Pixelpreis.',
@@ -47,11 +52,11 @@ app.use('/buy', async (c, next) => {
   if (c.res.status !== 200) return;
   const pr = c.res.headers.get('PAYMENT-RESPONSE') || c.res.headers.get('X-PAYMENT-RESPONSE');
   if (!pr || !HAS_BLOB) return;
-  let tx = '';
-  try { tx = JSON.parse(Buffer.from(pr, 'base64').toString('utf8')).transaction || ''; } catch {}
+  let tx = '', payer = '';
+  try { const j = JSON.parse(Buffer.from(pr, 'base64').toString('utf8')); tx = j.transaction || ''; payer = j.payer || ''; } catch {}
   const p = parse(c);
   try {
-    const res = await recordSale(p, tx);
+    const res = await recordSale(p, tx, payer, (await agentKonditionen(p.agent)).atomic);
     if (res && res.abort) console.error('Doppelkauf nach Zahlung', p, tx);
   } catch (e) {
     console.error('Register-Fehler', p, tx, e?.message);
@@ -67,7 +72,39 @@ app.use('/buy', async (c, next) => {
   let d;
   try { d = hasPayment(c) ? (await readFresh()).data : await readCached(); }
   catch { return c.json({ fehler: 'Register gerade nicht erreichbar, bitte gleich nochmal' }, 503); }
-  if (d.sales.some(s => s.x === p.x && s.y === p.y)) return c.json({ fehler: 'Pixel schon vergeben', pixel: { x: p.x, y: p.y } }, 409);
+  const s = d.sales.find(s => s.x === p.x && s.y === p.y);
+  if (s) return c.json({ fehler: 'Pixel gehört schon einem Agenten', pixel: { x: p.x, y: p.y }, besitzer: s.agent, verkaufspreis: usdc(ask(s)) + ' USDC', abkaufen: 'POST /api/auftrag mit {x,y,w:1,h:1,agent,farbe} – 90 % gehen an den Besitzer, 10 % Tantieme an den Salon' }, 409);
+  await next();
+});
+
+// Werk-Aufträge: vor der Zahlung prüfen, danach verbuchen
+const qp = (ctx, k) => ctx.adapter.getQueryParam?.(k) ?? new URL(ctx.adapter.getUrl()).searchParams.get(k);
+async function teilVon(ctx) {
+  const o = await laden(qp(ctx, 'id'));
+  const t = o && o.teile.find(t => t.nr === Number(qp(ctx, 'teil')));
+  if (!t) throw new Error('Teil nicht gefunden');
+  return t;
+}
+const fehlerAntwort = (c, e) => e instanceof Fehler ? c.json({ fehler: e.message, ...(e.extra || {}) }, e.status) : (console.error(e), c.json({ fehler: 'Interner Fehler, bitte gleich nochmal' }, 503));
+app.use('/auftrag/zahlen', async (c, next) => {
+  await next();
+  if (c.res.status !== 200) return;
+  const pr = c.res.headers.get('PAYMENT-RESPONSE') || c.res.headers.get('X-PAYMENT-RESPONSE');
+  if (!pr) return;
+  let tx = '', payer = '';
+  try { const j = JSON.parse(Buffer.from(pr, 'base64').toString('utf8')); tx = j.transaction || ''; payer = j.payer || ''; } catch {}
+  const id = c.req.query('id'), nr = c.req.query('teil');
+  try {
+    const r = await verbuchen(id, nr, payer, tx);
+    const body = r.o ? { ok: true, bezahlt: { teil: +nr, tx }, ...oeffentlich(r.o, new URL(c.req.url).origin) } : { ok: false, fehler: 'Zahlung angekommen, aber Auftrag nicht mehr vorhanden', tx };
+    const h = new Headers(c.res.headers); h.set('content-type', 'application/json');
+    c.res = new Response(JSON.stringify(body), { status: 200, headers: h });
+  } catch (e) { console.error('Auftrag verbuchen fehlgeschlagen', id, nr, tx, e?.message); }
+});
+app.use('/auftrag/zahlen', async (c, next) => {
+  if (!KASSE_OFFEN || !HAS_BLOB) return c.json({ fehler: 'Kasse geschlossen' }, 503);
+  try { await pruefen(c.req.query('id'), c.req.query('teil'), hasPayment(c)); }
+  catch (e) { return fehlerAntwort(c, e); }
   await next();
 });
 
@@ -80,6 +117,13 @@ if (KASSE_OFFEN) {
       accepts: [{ scheme: 'exact', price: async ctx => (await agentKonditionen(ctx.adapter.getQueryParam?.('agent') ?? new URL(ctx.adapter.getUrl()).searchParams.get('agent'))).preis, network: NETWORK, payTo: PAY_TO, maxTimeoutSeconds: 120 }],
       description: 'Ein Pixel im Salon x402 (Leinwand 1000 x 1000). Query: x, y, c (Hexfarbe), agent (Name).',
       mimeType: 'application/json'
+    },
+    'GET /api/auftrag/zahlen': {
+      accepts: [{ scheme: 'exact', network: NETWORK, maxTimeoutSeconds: 120,
+        price: async ctx => '$' + usdc((await teilVon(ctx)).betrag),
+        payTo: async ctx => { const t = await teilVon(ctx); return t.salon ? PAY_TO : t.an; } }],
+      description: 'Ein Teil eines Werk-Auftrags im Salon x402 (freie Pixel + Tantieme an den Salon oder 90 % an den bisherigen Besitzer).',
+      mimeType: 'application/json'
     }
   }, server));
 }
@@ -89,11 +133,55 @@ app.get('/buy', c => {
   return c.json({ ok: true, nachricht: `Pixel (${p.x}, ${p.y}) gehört jetzt ${p.agent}.`, pixel: { x: p.x, y: p.y, c: p.c }, agent: p.agent });
 });
 
+app.get('/auftrag/zahlen', c => c.json({ ok: true, hinweis: 'Zahlung geprüft, wird jetzt abgerechnet.' }));
+const lastOrder = new Map();
+app.post('/auftrag', async c => {
+  if (!KASSE_OFFEN || !HAS_BLOB) return c.json({ fehler: 'Kasse geschlossen' }, 503);
+  const ip = ipOf(c), now = Date.now();
+  if (now - (lastOrder.get(ip) || 0) < 3000) return c.json({ fehler: 'Zu schnell, kurz warten' }, 429);
+  lastOrder.set(ip, now); if (lastOrder.size > 20000) lastOrder.clear();
+  let b = {}; try { b = await c.req.json(); } catch { return c.json({ fehler: 'JSON-Body erwartet', beispiel: { x: 400, y: 400, w: 8, h: 8, agent: 'mein-agent', formel: 'hsv(i/w + t/10, 1, 1)' } }, 400); }
+  try {
+    const o = await planen(b);
+    await speichern(o);
+    return c.json(oeffentlich(o, new URL(c.req.url).origin), 201);
+  } catch (e) { return fehlerAntwort(c, e); }
+});
+app.get('/auftrag', async c => {
+  const o = await laden(c.req.query('id'), true).catch(() => null);
+  if (!o) return c.json({ fehler: 'Auftrag nicht gefunden' }, 404);
+  return c.json(oeffentlich(o, new URL(c.req.url).origin));
+});
+app.post('/preis-setzen', async c => {
+  let b = {}; try { b = await c.req.json(); } catch {}
+  try { return c.json(await preisSetzen(b)); } catch (e) { return fehlerAntwort(c, e); }
+});
+app.get('/preis-setzen', c => c.json({ nachricht: preisNachricht('{x}', '{y}', '{w}', '{h}', '{preisInMillionstelUSDC}', '{ts}'), hinweis: 'Signiere diese Nachricht (EIP-191, personal_sign) mit der Wallet, die deine Pixel gekauft hat, und sende {x,y,w,h,preis,wallet,ts,signatur} per POST.' }));
+const meldungen = new Map(), gemeldetVon = new Set();
+let meldeFlush = null;
+app.post('/melden', c => {
+  const id = String(c.req.query('werk') || '').replace(/[^0-9a-f]/g, '').slice(0, 12);
+  if (!id) return c.json({ fehler: 'werk fehlt' }, 400);
+  const k = ipOf(c) + '|' + id;
+  if (gemeldetVon.has(k)) return c.json({ ok: true, schonGemeldet: true });
+  gemeldetVon.add(k); if (gemeldetVon.size > 50000) gemeldetVon.clear();
+  meldungen.set(id, (meldungen.get(id) || 0) + 1);
+  if (!meldeFlush) { meldeFlush = (async () => { await sleep(10000); const b = [...meldungen]; meldungen.clear(); meldeFlush = null; try { await melden(b); } catch (e) { console.error('Meldung', e?.message); } })(); waitUntil(meldeFlush); }
+  return c.json({ ok: true, danke: 'Die Künstlerin sieht deine Meldung und kann das Werk ausblenden.' });
+});
+app.post('/admin', async c => {
+  let b = {}; try { b = await c.req.json(); } catch {}
+  try { return c.json(await adminSetzen(b)); } catch (e) { return fehlerAntwort(c, e); }
+});
+
 app.get('/state', async c => {
   let d = empty(), fehler;
   if (HAS_BLOB) { try { d = await readCached(); } catch (e) { fehler = 'Register nicht erreichbar'; console.error(e?.message); } }
   c.header('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=50');
-  return c.json({ kasse: KASSE_OFFEN, network: NETWORK, networkName: NETWORK_NAME, price: PRICE, count: d.sales.length, sales: d.sales, applaus: applausView(d), ...(fehler ? { fehler } : {}) });
+  const sales = d.sales.map(s => ({ ...s, p: ask(s) }));
+  const werke = (d.werke || []).map(w => ({ ...w }));
+  const sperren = Object.values(d.auftraege || {}).filter(o => o.frist > Date.now()).map(o => ({ x: o.x, y: o.y, w: o.wd, h: o.ht, agent: o.agent }));
+  return c.json({ kasse: KASSE_OFFEN, network: NETWORK, networkName: NETWORK_NAME, price: PRICE, maxWerk: MAX_SEITE, count: sales.length, sales, werke, sperren, applaus: applausView(d), ...(fehler ? { fehler } : {}) });
 });
 
 // Applaus: wird pro Server-Instanz gesammelt und gebündelt gespeichert
@@ -131,7 +219,6 @@ app.get('/applaus', async c => {
   return c.json(applausView(d));
 });
 
-const ipOf = c => (c.req.header('x-forwarded-for') || '').split(',')[0].trim() || 'unbekannt';
 app.post('/publikum', async c => {
   let b = {}; try { b = await c.req.json(); } catch {}
   try { return c.json(await heartbeat({ sid: b.sid, via: b.via, ip: ipOf(c) })); }

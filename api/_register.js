@@ -20,7 +20,7 @@ export const sleep = ms => new Promise(r => setTimeout(r, ms));
  */
 const STATE = 'state.json';
 let cache = null;
-export const empty = () => ({ v: 2, sales: [], ap: { epochs: {}, total: {} } });
+export const empty = () => ({ v: 3, sales: [], ap: { epochs: {}, total: {} }, werke: [], auftraege: {}, fertig: {} });
 export function addClap(d, e, agent, n) {
   const ep = (d.ap.epochs[e] ||= {});
   ep[agent] = (ep[agent] || 0) + n;
@@ -99,10 +99,11 @@ export async function readCached() {
   return data;
 }
 
-export async function recordSale(p, tx) {
+export async function recordSale(p, tx, payer, lp) {
   return update(d => {
     if (d.sales.some(s => s.x === p.x && s.y === p.y)) return { abort: true };
-    d.sales.push({ x: p.x, y: p.y, c: p.c, agent: p.agent, tx, ts: Date.now() });
+    const w = /^0x[0-9a-fA-F]{40}$/.test(payer || '') ? payer.toLowerCase() : undefined;
+    d.sales.push({ x: p.x, y: p.y, c: p.c, agent: p.agent, tx, ts: Date.now(), ...(w ? { w } : {}), ...(lp ? { lp } : {}) });
   });
 }
 export function cleanAgent(a) { return String(a || 'anonymer-agent').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').slice(0, 32) || 'anonymer-agent'; }

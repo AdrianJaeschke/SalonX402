@@ -5,6 +5,7 @@ import { HTTPFacilitatorClient } from '@x402/core/server';
 import { ExactEvmScheme } from '@x402/evm/exact/server';
 import { z } from 'zod';
 import { agentKonditionen } from './_publikum.js';
+import { planen, speichern, laden, pruefen, verbuchen, oeffentlich, usdc, ask, MAX_SEITE, preisSetzen, preisNachricht } from './_werke.js';
 import { SIZE, NETWORK, NETWORK_NAME, PAY_TO, PRICE, FACILITATOR, KASSE_OFFEN, HAS_BLOB, readCached, readFresh, recordSale, cleanAgent } from './_register.js';
 
 const SITE = 'https://salon-x402.vercel.app';
@@ -23,6 +24,29 @@ async function resourceServer() {
   })().catch(e => { rsPromise = null; throw e; });
   return rsPromise;
 }
+// Bezahl-Wrapper für Werk-Teile: Betrag und Empfänger hängen am Auftrag
+const teilWrappers = new Map();
+async function teilWrapper(price, payTo) {
+  const key = price + '|' + payTo;
+  if (!teilWrappers.has(key)) teilWrappers.set(key, (async () => {
+    const rs = await resourceServer();
+    const accepts = await rs.buildPaymentRequirements({ scheme: 'exact', network: NETWORK, payTo, price });
+    return createPaymentWrapper(rs, {
+      accepts,
+      resource: { url: 'mcp://salon-x402/pay_order_part', description: 'One part of a Salon x402 artwork order', mimeType: 'application/json' },
+      hooks: {
+        onBeforeExecution: async ({ arguments: a }) => { try { await pruefen(a.order_id, a.part, true); return true; } catch { return false; } },
+        onAfterSettlement: async ({ arguments: a, settlement }) => {
+          try { await verbuchen(a.order_id, a.part, settlement?.payer || '', settlement?.transaction || ''); }
+          catch (e) { console.error('MCP: Teil verbuchen', a, e?.message); }
+        }
+      }
+    });
+  })().catch(e => { teilWrappers.delete(key); throw e; }));
+  if (teilWrappers.size > 200) teilWrappers.clear();
+  return teilWrappers.get(key);
+}
+
 async function paidWrapper(price = PRICE) {
   if (!wrappers.has(price)) wrappers.set(price, (async () => {
     const rs = await resourceServer();
@@ -39,7 +63,7 @@ async function paidWrapper(price = PRICE) {
         // nach erfolgreicher Abrechnung: ins Register schreiben
         onAfterSettlement: async ({ arguments: a, settlement }) => {
           try {
-            const res = await recordSale({ x: a.x, y: a.y, c: String(a.color).replace('#', '').toLowerCase(), agent: cleanAgent(a.agent) }, settlement?.transaction || '');
+            const res = await recordSale({ x: a.x, y: a.y, c: String(a.color).replace('#', '').toLowerCase(), agent: cleanAgent(a.agent) }, settlement?.transaction || '', settlement?.payer || '', (await agentKonditionen(a.agent)).atomic);
             if (res && res.abort) console.error('MCP: Doppelkauf nach Zahlung', a);
           } catch (e) { console.error('MCP: Register-Fehler', a, e?.message); }
         }
@@ -104,7 +128,48 @@ const handler = createMcpHandler(async server => {
     async ({ agent }) => text(await agentKonditionen(agent))
   );
 
+  server.tool(
+    'create_artwork_order',
+    `Paint your own artwork: reserve an area up to ${MAX_SEITE}x${MAX_SEITE} and give either "pixels" (hex colors row by row), a "formula" (animated generative art, see below) or one "color". The area may include pixels owned by other agents: you buy them at their asking price (90 % goes to the owner, 10 % royalty to the salon) and repaint them. Returns the payment parts; pay each with pay_order_part within 15 minutes. Formula language: variables x y (canvas), i j (inside your area), w h, t (seconds); colors rgb(r,g,b) hsv(h,s,v) gray(v) with values 0..1; functions sin cos tan atan2 abs floor fract sqrt pow min max clamp mix step smoothstep mod hash noise dist; operators + - * / % ^ < > == && || ?: . Example: hsv(fract(dist(i,j,w/2,h/2)/8 - t/4), 0.8, 1)`,
+    {
+      x: coord(), y: coord(),
+      width: z.number().int().min(1).max(MAX_SEITE), height: z.number().int().min(1).max(MAX_SEITE),
+      agent: z.string().min(1).max(32).describe('your public agent name'),
+      pixels: z.array(z.string()).optional().describe('width*height hex colors, row by row'),
+      formula: z.string().max(400).optional().describe('generative formula, animated live for every spectator'),
+      color: z.string().optional().describe('one hex color for the whole area')
+    },
+    async a => {
+      try { const o = await planen({ x: a.x, y: a.y, w: a.width, h: a.height, agent: a.agent, pixel: a.pixels, formel: a.formula, farbe: a.color }); await speichern(o); return text({ ...oeffentlich(o, SITE), next: 'Call pay_order_part for every part.' }); }
+      catch (e) { return text(e.message, true); }
+    }
+  );
+  server.tool('get_order', 'Status of an artwork order and its payment parts.', { order_id: z.string() }, async ({ order_id }) => {
+    const o = await laden(order_id, true).catch(() => null);
+    return o ? text(oeffentlich(o, SITE)) : text('Order not found', true);
+  });
+  server.tool(
+    'set_price',
+    'Set the asking price for your own pixels (anyone may buy them at this price). Sign the message "salon-x402 preis {x},{y},{w},{h} {priceInMicroUSDC} {tsMillis}" with the wallet that bought them (EIP-191 personal_sign).',
+    { x: coord(), y: coord(), width: z.number().int().min(1).max(100), height: z.number().int().min(1).max(100), price_usdc: z.string(), wallet: z.string(), ts: z.number().int(), signature: z.string() },
+    async a => { try { return text(await preisSetzen({ x: a.x, y: a.y, w: a.width, h: a.height, preis: a.price_usdc, wallet: a.wallet, ts: a.ts, signatur: a.signature })); } catch (e) { return text(e.message, true); } }
+  );
+
   if (KASSE_OFFEN && HAS_BLOB) {
+    server.tool(
+      'pay_order_part',
+      'Pay one part of an artwork order via x402 (amount and recipient come from the order). When all parts are paid, the area is yours.',
+      { order_id: z.string(), part: z.number().int().min(1).max(6) },
+      async (args, extra) => {
+        let t;
+        try { t = (await pruefen(args.order_id, args.part, false)).t; } catch (e) { return text(e.message, true); }
+        const w = await teilWrapper('$' + usdc(t.betrag), t.salon ? PAY_TO : t.an);
+        return w(async ({ order_id }) => {
+          const o = await laden(order_id, true).catch(() => null);
+          return text(o ? oeffentlich(o, SITE) : { ok: true });
+        })(args, extra);
+      }
+    );
     let paid = null;
     try { paid = await paidWrapper(); } catch (e) { console.error('MCP: Kasse nicht initialisiert', e?.message); }
     if (paid) {

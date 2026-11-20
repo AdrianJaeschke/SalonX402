@@ -76,7 +76,7 @@ async function refsMap() {
 export function konditionen(besucher) {
   const multi = Math.min(MAX_MULTI, 1 + Math.floor(besucher / BESUCHER_PRO_STUFE) / 10);
   const atomic = Math.round(BASE_ATOMIC / multi);
-  return { besucher, multiplikator: Math.round(multi * 10) / 10, rabatt: Math.round((1 - 1 / multi) * 100), preis: '$' + (atomic / 1e6).toFixed(6).replace(/0+$/, '').replace(/\.$/, '') };
+  return { besucher, multiplikator: Math.round(multi * 10) / 10, rabatt: Math.round((1 - 1 / multi) * 100), preis: '$' + (atomic / 1e6).toFixed(6).replace(/0+$/, '').replace(/\.$/, ''), atomic };
 }
 
 // Pro Instanz kurz zwischenspeichern, damit 402-Antwort und Zahlungsprüfung denselben Preis sehen

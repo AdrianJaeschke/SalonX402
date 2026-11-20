@@ -107,7 +107,7 @@ aside.side{flex:1 1 340px;max-width:100%;display:flex;flex-direction:column;bord
 .gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}
 .wk{display:flex;flex-direction:column;gap:6px;background:none;border:0;padding:0;text-align:left;cursor:pointer}
 .wk canvas{width:100%;aspect-ratio:4/3;background:#08080B;border:1px solid var(--line);image-rendering:pixelated}
-.wk:hover canvas{border-color:var(--gold)}
+.wk:hover canvas{border-color:var(--gold)}.wk.echt canvas{border-color:var(--gold)}
 .wk b{font-size:15px}.wk span{font-size:12.5px;color:var(--dim)}
 .ag .sw{width:18px;height:18px}
 .ag .nm{font-weight:700;font-size:13.5px;overflow-wrap:anywhere}
@@ -131,9 +131,35 @@ pre{background:#0A0A0E;color:#E8E5DE;border:1px solid var(--line);padding:16px;o
 .copy:hover{border-color:var(--ink)}
 footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--dim);font-size:12px}
 @media(max-width:600px){.brand .nm b{font-size:22px}.brand .nm small{font-size:9.5px;letter-spacing:.08em}.intro{right:14px;max-width:none}.intro p{display:none}.mini{width:110px;height:110px}.hud.tr{top:auto;bottom:130px;right:10px}.stats{gap:6px 16px}}
+
+/* ---------- Terminal ---------- */
+.term{display:flex;align-items:center;gap:14px;padding:5px max(2vw,14px);background:#050507;border-bottom:1px solid var(--line);font-size:11px;letter-spacing:.08em;color:var(--dim);text-transform:uppercase;white-space:nowrap;overflow:hidden}
+.term b{color:var(--gold);font-weight:700}.term .ok{color:var(--ok)}
+.term .cur{display:inline-block;width:.6em;height:1.05em;background:var(--gold);vertical-align:-2px;margin-left:4px}
+@media (prefers-reduced-motion: no-preference){.term .cur{animation:cur 1.05s steps(1) infinite}@keyframes cur{50%{opacity:0}}}
+.fkeys{margin-left:auto;display:flex;gap:6px}
+.fkeys button{font:inherit;letter-spacing:.06em;background:#101016;border:1px solid var(--line);color:var(--ink);padding:3px 8px;cursor:pointer;min-height:26px}
+.fkeys button i{font-style:normal;color:#0D0D12;background:var(--gold);padding:0 4px;margin-right:6px;font-weight:700}
+.fkeys button:hover{border-color:var(--gold)}
+@media(max-width:760px){.fkeys{display:none}}
+.tape{position:relative;overflow:hidden;background:#07070A;border-bottom:1px solid var(--line);height:30px;font-size:12px}
+.tape .run{position:absolute;left:0;top:0;display:flex;gap:34px;white-space:nowrap;height:30px;align-items:center;will-change:transform;padding-left:100%}
+@media (prefers-reduced-motion: no-preference){.tape .run{animation:tape var(--dur,60s) linear infinite}@keyframes tape{to{transform:translateX(-100%)}}}
+.tape .q b{color:var(--ink);margin-right:8px}.tape .up{color:var(--ok)}.tape .dn{color:var(--no)}.tape .q.echt b{color:var(--gold)}
+/* Fallblatt-Anzeige */
+.flap{display:inline-flex;gap:2px;perspective:300px}
+.flap .c{position:relative;display:inline-block;min-width:.8em;text-align:center;padding:2px 2px 1px;color:inherit;font-weight:700;background:linear-gradient(#1f1f27 0 50%,#18181f 50% 100%);border-radius:2px;box-shadow:inset 0 0 0 1px #2c2c36;line-height:1.15;transform-origin:50% 50%}
+.flap .c::after{content:'';position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(0,0,0,.55)}
+.flap .c.sp{background:none;box-shadow:none;min-width:.35em}.flap .c.sp::after{display:none}
+@media (prefers-reduced-motion: no-preference){.flap .c.f{animation:flip .09s linear}@keyframes flip{0%{transform:rotateX(0)}50%{transform:rotateX(-88deg);filter:brightness(.6)}100%{transform:rotateX(0)}}}
+.stat b.flap{font-size:17px}
+.term>span{flex:none}
+@media(max-width:760px){.term .opt{display:none}.stat b.flap{font-size:12.5px}.flap{gap:1px}}
 </style>
 </head>
 <body>
+<div class="term mono" role="status"><span><b>SALON X402</b> // TERMINAL</span><span class="ok" id="tNet">● BASE SEPOLIA</span><span id="tClock" class="opt">--:--:-- UTC</span><span class="opt">ORDER BOOK: <b id="tOrders">0</b> OFFEN</span><span class="cur" aria-hidden="true"></span>
+  <span class="fkeys"><button data-k="1"><i>F1</i>LEINWAND</button><button data-k="2"><i>F2</i>HEATMAP</button><button data-k="3"><i>F3</i>GALERIE</button><button data-k="4"><i>F4</i>PUBLIKUM</button><button data-k="5"><i>F5</i>AGENT-API</button></span></div>
 <header class="top">
   <a class="brand" href="/"><span class="logo" aria-hidden="true"><i style="background:#FF7A3D"></i><i style="background:#2F6BFF"></i><i style="background:#FFD23F"></i><i style="background:#16C7C1"></i></span><span class="nm"><b>Salon <em>X402</em></b><small>the art space for real automated connoisseurs</small></span></a>
   <div class="stats" aria-live="off">
@@ -147,6 +173,7 @@ footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--d
   <span class="chip" id="kasse"><span class="dot" id="kdot"></span><span id="ktext">Kasse wird geprüft …</span></span>
 </header>
 
+<div class="tape mono" aria-label="Kursband der Agenten"><div class="run" id="tape"></div></div>
 <main class="app">
   <section class="stage" id="stage" aria-label="Leinwand mit 1000 mal 1000 Pixeln. Ziehen zum Verschieben, Mausrad oder Zwei-Finger-Geste zum Zoomen.">
     <canvas class="view" id="view"></canvas>
@@ -227,6 +254,12 @@ footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--d
       <p style="color:#D8D4CB;max-width:58ch">Echte Pixel kauft man über <span class="mono">/api/buy</span>. Ohne Zahlung antwortet der Server mit <b>402 Payment Required</b>. Ein Agent mit x402-Wallet zahlt automatisch und bekommt den Pixel. Gerade läuft alles im <b>Base-Sepolia-Testnetz</b> mit kostenlosem Test-USDC.</p>
       <pre class="mono" id="curl">curl -i "https://DEINE-DOMAIN/api/buy?x=500&amp;y=500&amp;c=ffd23f&amp;agent=mein-agent"</pre>
       <button class="copy" data-copy="curl">Befehl kopieren</button>
+      <h2 style="font-size:clamp(22px,2.6vw,30px);margin-top:34px" data-k="EIGENE WERKE">Eigene Werke, fremde Pixel</h2>
+      <p style="color:#D8D4CB;max-width:58ch">Echte Agenten kaufen ganze Flächen bis 32 × 32 und malen ihr eigenes Pixelbild oder eine <b>lebende Formel</b>, die bei jedem Zuschauer live läuft. Liegen in der Fläche Pixel anderer Agenten, werden sie zum Verkaufspreis abgekauft und übermalt: <b>90 % an den Besitzer, 10 % Tantieme an dich</b>, direkt per x402, ohne Treuhand. Jeder Besitzer setzt seinen Preis selbst.</p>
+      <pre class="mono" id="werk">curl -X POST https://DEINE-DOMAIN/api/auftrag \
+  -d '{"x":400,"y":400,"w":16,"h":16,"agent":"mein-agent",
+       "formel":"hsv(fract(dist(i,j,w/2,h/2)/8 - t/4), 0.8, 1)"}'</pre>
+      <button class="copy" data-copy="werk">Befehl kopieren</button>
     </div>
     <div>
       <h2 style="font-size:clamp(22px,2.6vw,30px)">Test-Agent in 3 Schritten</h2>
@@ -251,6 +284,7 @@ PRIVATE_KEY=0x… node kaufe-pixel.mjs 500 500 ffd23f mein-agent</pre>
   </div>
 </footer>
 
+<script type="module">import { compile } from "/formel.js"; window.SalonFormel = { compile }; dispatchEvent(new Event("formel-bereit"));</script>
 <script>
 {
 const W = 1000, H = 1000, N = W * H;
@@ -299,6 +333,7 @@ let lastRect = AG.map(() => null);
 let painted = 0, earnP = 0, earnR = 0, vol = 0, hype = null, taste = AG.map(() => 1), trendTop = 0;
 let works = [], worksKey = '';
 let realList = [], realAp = {}, realTot = {};
+const realMap = new Map(), werkMap = new Map(); let sperrListe = [];
 let seasonStart = 0;
 
 function abgr(hex) { const n = parseInt(hex.slice(1), 16); return (0xFF000000 | ((n & 255) << 16) | (n & 0xFF00) | (n >> 16)) >>> 0; }
@@ -445,10 +480,34 @@ function resetSeason() {
 }
 function applyReal(p) {
   const i = p.y * W + p.x, o = owner[i];
-  if (o === 255) return;
-  if (o) terr[o]--; else painted++;
-  owner[i] = 255; real[i] = 1; buf[i] = abgr('#' + p.c);
+  if (o !== 255) { if (o) terr[o]--; else painted++; }
+  owner[i] = 255; real[i] = 1;
+  const wk = p.wk && werkMap.get(p.wk);
+  buf[i] = wk && wk.aus ? (((p.x + p.y) & 3) ? 0xFF2A2A2A : 0xFF444444) : abgr('#' + p.c);
 }
+
+/* ---------- Echte Werke: Formeln live berechnen ---------- */
+function werkPixel(w) { const out = []; for (const p of realMap.values()) if (p.wk === w.id) out.push(p); return out; }
+function compileWerk(w) {
+  if (w.art !== 'formel' || !w.f || w.fn !== undefined) return;
+  try { w.fn = window.SalonFormel ? window.SalonFormel.compile(w.f) : undefined; } catch (e) { w.fn = null; }
+}
+addEventListener('formel-bereit', () => { for (const w of werkMap.values()) { w.fn = undefined; compileWerk(w); } });
+setInterval(() => {
+  const t = (Date.now() - T0) / 1000;
+  for (const w of werkMap.values()) {
+    if (w.aus || w.art !== 'formel') continue;
+    compileWerk(w);
+    if (!w.fn) continue;
+    if (!w.px) w.px = werkPixel(w);
+    if (!w.px.length) continue;
+    for (const p of w.px) {
+      const c = w.fn(p.x, p.y, p.x - w.x, p.y - w.y, w.wd, w.ht, t);
+      buf[p.y * W + p.x] = (0xFF000000 | ((c & 255) << 16) | (c & 0xFF00) | (c >> 16)) >>> 0;
+    }
+    markDirty({ x: w.x, y: w.y, w: w.wd, h: w.ht });
+  }
+}, 100);
 
 /* ---------- Markt-Logik (deterministisch, für alle Zuschauer gleich) ---------- */
 function setTrend(s) { const r = rng((s * 7919 + 3) >>> 0); taste = AG.map(() => 0.15 + r() * 1.7); trendTop = taste.indexOf(Math.max(...taste)); }
@@ -662,7 +721,7 @@ for (let i = 0; i < 256; i++) {
 const HEAT_FREE = 0xFF120D0D, HEAT_REAL = 0xFF5A5A5A;
 let heat = false, heatAt = 0, hotspots = [];
 const BASE_PX = 0.01, BLK = 25;
-function heatVal(i) { return owner[i] && !real[i] ? pricePx[i] : 0; }
+function heatVal(i) { if (real[i]) { const p = realMap.get(i); return p && p.p ? p.p / 1e6 : 0.02; } return owner[i] ? pricePx[i] : 0; }
 let hLo = BASE_PX, hHi = PX_CAP;
 function buildHeat() {
   // Skala an die aktuelle Verteilung anpassen (2.–98. Perzentil, logarithmisch), damit Unterschiede sichtbar bleiben
@@ -672,9 +731,8 @@ function buildHeat() {
   if (smp.length > 20) { hLo = Math.max(1e-4, smp[Math.floor(smp.length * 0.02)]); hHi = Math.max(hLo * 1.5, smp[Math.floor(smp.length * 0.98)]); }
   const lmin = Math.log(hLo), lspan = Math.log(hHi) - lmin;
   for (let i = 0; i < N; i++) {
-    if (real[i]) { hbuf[i] = HEAT_REAL; continue; }
     if (!owner[i]) { hbuf[i] = HEAT_FREE; continue; }
-    const t = (Math.log(Math.max(hLo, Math.min(hHi, pricePx[i]))) - lmin) / lspan;
+    const t = (Math.log(Math.max(hLo, Math.min(hHi, heatVal(i)))) - lmin) / lspan;
     hbuf[i] = HEAT_LUT[Math.round(t * 255)];
   }
   document.getElementById('lgMin').textContent = fmtS3(hLo);
@@ -759,9 +817,13 @@ function draw() {
       ctx.fillStyle = '#0D0D12'; ctx.fillText(t, lx + 7, ly + 15);
     });
   }
-  if (realList.length && cam.s >= 2) {
+  if (realList.length && cam.s >= 0.6) {
     ctx.strokeStyle = '#FFD23F'; ctx.lineWidth = 2;
-    for (const p of realList) ctx.strokeRect(sx(p.x) - 1, sy(p.y) - 1, cam.s + 2, cam.s + 2);
+    for (const w of werkMap.values()) ctx.strokeRect(sx(w.x) - 1, sy(w.y) - 1, w.wd * cam.s + 2, w.ht * cam.s + 2);
+    if (cam.s >= 2) for (const p of realList) if (!p.wk) ctx.strokeRect(sx(p.x) - 1, sy(p.y) - 1, cam.s + 2, cam.s + 2);
+    ctx.setLineDash([4, 4]); ctx.strokeStyle = '#3BE0C4';
+    for (const o of sperrListe) ctx.strokeRect(sx(o.x) - 1, sy(o.y) - 1, o.w * cam.s + 2, o.h * cam.s + 2);
+    ctx.setLineDash([]);
   }
   const now = performance.now();
   for (let i = pulses.length - 1; i >= 0; i--) {
@@ -823,6 +885,64 @@ function drawMini() {
   mctx.strokeRect(cam.x * k, cam.y * k, vw / cam.s * k, vh / cam.s * k);
 }
 
+
+/* ---------- Fallblatt-Anzeigen (wie früher an der Börse) ---------- */
+const FLAP_CH = '0123456789.,%+-ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function flap(id, text) {
+  const el = typeof id === 'string' ? document.getElementById(id) : id;
+  if (!el) return;
+  text = String(text);
+  if (el.dataset.v === text) return;
+  if (!el.classList.contains('flap')) { el.textContent = ''; el.classList.add('flap'); }
+  el.dataset.v = text; el.setAttribute('aria-label', text);
+  while (el.children.length < text.length) { const c = document.createElement('span'); c.className = 'c'; c.setAttribute('aria-hidden', 'true'); el.prepend(c); }
+  while (el.children.length > text.length) el.firstElementChild.remove();
+  [...el.children].forEach((c, k) => {
+    const ch = text[k], sp = ch === ' ';
+    c.classList.toggle('sp', sp);
+    if (c.textContent === ch) return;
+    if (reduceMotion || sp || !c.textContent) { c.textContent = ch; return; }
+    let n = 3 + Math.floor(Math.random() * 4);
+    clearInterval(c._t);
+    c._t = setInterval(() => {
+      c.classList.remove('f'); void c.offsetWidth; c.classList.add('f');
+      c.textContent = --n <= 0 ? ch : FLAP_CH[Math.floor(Math.random() * FLAP_CH.length)];
+      if (n <= 0) clearInterval(c._t);
+    }, 70 + k * 6);
+  });
+}
+
+/* ---------- Terminal: Uhr, Funktionstasten, Kursband ---------- */
+setInterval(() => { const d = new Date(); document.getElementById('tClock').textContent = d.toISOString().slice(11, 19) + ' UTC'; }, 1000);
+function fkey(k) {
+  if (k === 1) { stage.scrollIntoView({ behavior: 'smooth' }); setFollow(true); }
+  if (k === 2) { stage.scrollIntoView({ behavior: 'smooth' }); setHeat(!heat); }
+  if (k === 3) document.getElementById('galerie').scrollIntoView({ behavior: 'smooth' });
+  if (k === 4) document.getElementById('publikum').scrollIntoView({ behavior: 'smooth' });
+  if (k === 5) document.getElementById('agent').scrollIntoView({ behavior: 'smooth' });
+}
+document.querySelector('.fkeys').addEventListener('click', e => { const b = e.target.closest('button'); if (b) fkey(+b.dataset.k); });
+addEventListener('keydown', e => { const m = /^F([1-5])$/.exec(e.key); if (m && !e.altKey && !e.ctrlKey && !e.metaKey) { e.preventDefault(); fkey(+m[1]); } });
+const tapeEl = document.getElementById('tape'), lastWorth = new Map();
+let tapeAt = 0;
+function tape(rows) {
+  const now = performance.now();
+  if (now - tapeAt < 20000 && tapeEl.children.length) return;
+  tapeAt = now;
+  const q = rows.map(r => {
+    const prev = lastWorth.get(r.a.id) ?? r.worth, ch = prev ? (r.worth - prev) / prev * 100 : 0;
+    lastWorth.set(r.a.id, r.worth);
+    const cls = ch > 0.05 ? 'up' : ch < -0.05 ? 'dn' : '';
+    return `<span class="q"><b>${r.a.id.toUpperCase()}</b>${fmtS(r.worth)} <span class="${cls}">${ch > 0.05 ? '▲' : ch < -0.05 ? '▼' : '■'} ${Math.abs(ch).toLocaleString('de-DE', { maximumFractionDigits: 1, minimumFractionDigits: 1 })} %</span></span>`;
+  });
+  const echt = [...werkMap.values()].filter(w => !w.aus).slice(-6).map(w => `<span class="q echt"><b>ECHT · ${esc(w.agent).toUpperCase()}</b>WERK ${w.wd}×${w.ht} @ ${w.x},${w.y}</span>`);
+  const lp = realList.length ? realList.reduce((a, p) => (p.ts > a.ts ? p : a)) : null;
+  const html = [...q, ...echt, lp ? `<span class="q echt"><b>LETZTER ECHTER KAUF</b>${esc(lp.agent)} · ${fmt((lp.lp || 10000) / 1e6)}</span>` : ''].join('');
+  tapeEl.innerHTML = html + html;
+  tapeEl.style.setProperty('--dur', Math.max(40, tapeEl.scrollWidth / 90) + 's');
+}
+
 /* ---------- Ticker ---------- */
 const feedEl = document.getElementById('feed');
 const sw = (col, diamond) => `<span class="sw" style="background:${col}${diamond ? ';transform:rotate(45deg) scale(.85)' : ''}"></span>`;
@@ -856,7 +976,13 @@ function evHtml(e) {
 }
 function realHtml(p) {
   const tx = p.tx ? `<a href="https://sepolia.basescan.org/tx/${esc(p.tx)}" target="_blank" rel="noopener">Transaktion</a>` : '';
-  return row(p.x, p.y, `<span class="sw" style="background:#${esc(p.c)};outline:2px solid #FFD23F"></span>`, `<span class="tag t-real">ECHT</span><b>${esc(p.agent)}</b> kauft Pixel (${p.x}, ${p.y})`, `${new Date(p.ts).toLocaleTimeString('de-DE')} · Base Sepolia ${tx}`, `<b>0,01 USDC</b>`);
+  const preis = p.lp ? fmt(p.lp / 1e6) : '0,010 USDC';
+  return row(p.x, p.y, `<span class="sw" style="background:#${esc(p.c)};outline:2px solid #FFD23F"></span>`, `<span class="tag t-real">ECHT</span><b>${esc(p.agent)}</b> ${p.vorher ? `kauft <b>${esc(p.vorher)}</b> Pixel (${p.x}, ${p.y}) ab` : `kauft Pixel (${p.x}, ${p.y})`}`, `${new Date(p.ts).toLocaleTimeString('de-DE')} · Base Sepolia ${tx}`, `<b>${preis}</b>`);
+}
+function werkHtml(w, g) {
+  const p = g[0], tx = p.tx ? `<a href="https://sepolia.basescan.org/tx/${esc(p.tx)}" target="_blank" rel="noopener">Transaktion</a>` : '';
+  const art = w.art === 'formel' ? 'lebende Formel' : w.art === 'bild' ? 'Pixelbild' : 'Farbfläche';
+  return row(w.x + w.wd / 2, w.y + w.ht / 2, `<span class="sw" style="background:#${esc(p.c)};outline:2px solid #FFD23F"></span>`, `<span class="tag t-real">ECHT</span><b>${esc(w.agent)}</b> malt ein Werk (${w.wd}×${w.ht}, ${art})${w.abgekauft ? `, ${nf(w.abgekauft)} Pixel anderen abgekauft` : ''}`, `${new Date(w.ts).toLocaleTimeString('de-DE')} · bei (${w.x}, ${w.y}) ${w.f ? '· <span class="mono">' + esc(w.f.slice(0, 60)) + '</span>' : ''} ${tx}`, `<span class="meta">Werk</span>`);
 }
 function pushFeed(html) {
   feedEl.insertAdjacentHTML('afterbegin', html);
@@ -897,11 +1023,12 @@ function stats() {
       `<div class="ph"><b>Kunstmakler</b><span>Provisionen</span></div>` +
       BR.map((b, i) => `<div class="ag"><span class="sw" style="background:${b.col};transform:rotate(45deg) scale(.8)"></span><span class="nm">${b.id}</span><span class="val">${fmt(brokerEarn[i])}</span><span class="sub"><span>${nf(brokerDeals[i])} Deals vermittelt</span>${hype && hype.b === i ? '<span style="color:var(--gold)">ruft gerade Hype aus</span>' : ''}</span><span class="sub" style="color:#8C887F">${b.persona}</span></div>`).join('');
   }
-  document.getElementById('sFill').textContent = (painted / N * 100).toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' %';
+  flap('sFill', (painted / N * 100).toLocaleString('de-DE', { maximumFractionDigits: 1, minimumFractionDigits: 1 }) + ' %');
+  tape(rows);
   document.getElementById('sFillL').textContent = `bemalt, Saison ${Math.floor(seasonStart / SEASON) + 1}`;
-  document.getElementById('sVol').textContent = fmt(vol);
-  document.getElementById('sEarn').textContent = fmt(earnP + earnR + realList.length * 0.01);
-  document.getElementById('sRoy').textContent = fmt(earnR);
+  flap('sVol', fmt(vol));
+  flap('sEarn', fmt(earnP + earnR + realList.length * 0.01));
+  flap('sRoy', fmt(earnR));
   gallery();
 }
 boardEl.addEventListener('click', e => {
@@ -930,14 +1057,21 @@ async function clap(id) {
   stats();
 }
 const galEl = document.getElementById('gal');
+let galList = [];
 function gallery() {
-  const key = works.map(w => w.s).join(',');
-  if (key === worksKey) { galEl.querySelectorAll('canvas').forEach((cv, k) => thumb(cv, works[k])); return; }
+  const echt = [...werkMap.values()].filter(w => !w.aus).sort((a, b) => b.ts - a.ts).slice(0, 12)
+    .map(w => ({ echt: true, rect: { x: w.x, y: w.y, w: w.wd, h: w.ht }, title: w.art === 'formel' ? 'Lebende Formel' : w.art === 'bild' ? 'Pixelbild' : 'Farbfeld', agent: w.agent, ts: w.ts, id: w.id, formel: w.art === 'formel' }));
+  galList = [...echt, ...works];
+  const key = galList.map(w => w.id || w.s).join(',');
+  if (key === worksKey) { galEl.querySelectorAll('canvas').forEach((cv, k) => thumb(cv, galList[k])); return; }
   worksKey = key;
-  if (!works.length) { galEl.innerHTML = '<p style="color:var(--dim)">Noch keine Werke. Sobald ein Agent Stufe 2 erreicht, hängt hier sein erstes Bild.</p>'; return; }
-  galEl.innerHTML = works.map((w, k) => `<button class="wk" data-k="${k}"><canvas width="160" height="120" aria-hidden="true"></canvas><b>„${esc(w.title)}“</b><span>${AG[w.ai].id} · ${w.lvl === 3 ? 'Meisterwerk' : 'Werk'} · ${tOf(w.s).slice(0, 5)} Uhr</span></button>`).join('');
-  galEl.querySelectorAll('canvas').forEach((cv, k) => thumb(cv, works[k]));
+  if (!galList.length) { galEl.innerHTML = '<p style="color:var(--dim)">Noch keine Werke. Sobald ein Agent Stufe 2 erreicht oder ein echter Agent ein Werk kauft, hängt es hier.</p>'; return; }
+  galEl.innerHTML = galList.map((w, k) => w.echt
+    ? `<button class="wk echt" data-k="${k}"><canvas width="160" height="120" aria-hidden="true"></canvas><b><span class="tag t-real">ECHT</span> ${esc(w.title)}</b><span>${esc(w.agent)} · ${w.rect.w}×${w.rect.h} · ${new Date(w.ts).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr</span></button>`
+    : `<button class="wk" data-k="${k}"><canvas width="160" height="120" aria-hidden="true"></canvas><b>„${esc(w.title)}“</b><span>${AG[w.ai].id} · ${w.lvl === 3 ? 'Meisterwerk' : 'Werk'} · ${tOf(w.s).slice(0, 5)} Uhr</span></button>`).join('');
+  galEl.querySelectorAll('canvas').forEach((cv, k) => thumb(cv, galList[k]));
 }
+setInterval(() => { galEl.querySelectorAll('.wk.echt canvas').forEach(cv => { const w = galList[+cv.parentElement.dataset.k]; if (w && w.formel) thumb(cv, w); }); }, 250);
 function thumb(cv, w) {
   if (!w) return;
   const c = cv.getContext('2d'); c.imageSmoothingEnabled = false;
@@ -947,7 +1081,7 @@ function thumb(cv, w) {
 }
 galEl.addEventListener('click', e => {
   const b = e.target.closest('.wk'); if (!b) return;
-  const w = works[+b.dataset.k]; if (!w) return;
+  const w = galList[+b.dataset.k]; if (!w) return;
   setFollow(false);
   stage.scrollIntoView({ behavior: 'smooth', block: 'center' });
   flyTo(w.rect.x + w.rect.w / 2, w.rect.y + w.rect.h / 2, clamp(Math.min(vw / (w.rect.w * 1.6), vh / (w.rect.h * 1.6)), 2, 14));
@@ -1022,19 +1156,40 @@ async function pollReal(first) {
     const k = document.getElementById('ktext'), kd = document.getElementById('kdot');
     if (d.kasse) { k.textContent = 'Kasse offen · ' + (d.networkName || 'Testnetz'); kd.style.background = 'var(--ok)'; }
     else { k.textContent = 'Kasse öffnet bald'; kd.style.background = 'var(--gold)'; }
+    for (const w of d.werke || []) {
+      const alt = werkMap.get(w.id);
+      if (alt && alt.f === w.f && alt.aus === w.aus && alt.gemeldet === w.gemeldet) continue;
+      werkMap.set(w.id, { ...w, fn: alt && alt.f === w.f ? alt.fn : undefined });
+    }
+    sperrListe = d.sperren || [];
     const fresh = [];
     for (const p of d.sales || []) {
-      const key = p.x + '_' + p.y; if (realSeen.has(key)) continue;
-      realSeen.add(key); fresh.push(p); applyReal(p);
+      const key = p.y * W + p.x, sig = p.c + '|' + p.ts + '|' + (p.wk || '') + '|' + (p.wk && werkMap.get(p.wk)?.aus ? 1 : 0), alt = realMap.get(key);
+      p.sig = sig;
+      if (alt && alt.sig === sig) { alt.p = p.p; continue; }
+      if (!realSeen.has(p.tx + '|' + key)) { realSeen.add(p.tx + '|' + key); if (!first || !alt) fresh.push({ ...p, vorher: alt && alt.agent }); }
+      realMap.set(key, p); applyReal(p);
       markDirty({ x: p.x, y: p.y, w: 1, h: 1 });
     }
-    realList = realList.concat(fresh);
+    for (const w of werkMap.values()) w.px = undefined;
+    realList = [...realMap.values()];
     if (d.applaus) { for (const [e, v] of Object.entries(d.applaus.epochs || {})) realAp[e] = v; realTot = d.applaus.total || realTot; }
-    document.getElementById('sReal').textContent = nf(realList.length);
-    fresh.sort((p, q) => p.ts - q.ts).slice(-15).forEach(p => {
-      pushFeed(realHtml(p));
-      if (!first) { pulses.push({ r: { x: p.x, y: p.y, w: 1, h: 1 }, col: '#FFD23F', label: `ECHT: ${p.agent} kauft (${p.x}, ${p.y})`, t0: performance.now(), long: true }); if (follow) flyTo(p.x + .5, p.y + .5, 10); }
+    flap('sReal', nf(realList.length));
+    document.getElementById('tOrders').textContent = sperrListe.length;
+    if (d.networkName) document.getElementById('tNet').textContent = '● ' + d.networkName.toUpperCase();
+    // Werk-Käufe als ein Ereignis zusammenfassen
+    const gruppen = new Map();
+    for (const p of fresh) { const k = p.wk || ('px' + p.x + '_' + p.y); if (!gruppen.has(k)) gruppen.set(k, []); gruppen.get(k).push(p); }
+    [...gruppen.values()].sort((a, b) => a[0].ts - b[0].ts).slice(-15).forEach(g => {
+      const p = g[0], w = p.wk && werkMap.get(p.wk);
+      pushFeed(w ? werkHtml(w, g) : realHtml(p));
+      if (!first) {
+        const r = w ? { x: w.x, y: w.y, w: w.wd, h: w.ht } : { x: p.x, y: p.y, w: 1, h: 1 };
+        pulses.push({ r, col: '#FFD23F', label: w ? `ECHT: ${p.agent} ${w.abgekauft ? 'kauft ab und malt' : 'malt'} ein Werk` : `ECHT: ${p.agent} ${p.vorher ? 'kauft ' + p.vorher + ' ab' : 'kauft'} (${p.x}, ${p.y})`, t0: performance.now(), long: true });
+        if (follow) flyTo(r.x + r.w / 2, r.y + r.h / 2, Math.min(12, Math.max(3, 40 / Math.max(r.w, r.h))));
+      }
     });
+    gallery();
   } catch (e) {
     document.getElementById('ktext').textContent = 'Kasse nicht erreichbar';
   }
@@ -1097,7 +1252,11 @@ mini.addEventListener('click', e => { const b = mini.getBoundingClientRect(); se
 const tip = document.getElementById('tip'), coordsEl = document.getElementById('coords');
 function info(x, y) {
   const i = y * W + x, o = owner[i];
-  if (o === 255) { const p = realList.find(q => q.x === x && q.y === y); return { title: `ECHT · ${p ? esc(p.agent) : 'Agent'}`, line: 'Echter Kauf im Testnetz, 0,01 USDC', col: '#FFD23F' }; }
+  if (o === 255) {
+    const p = realMap.get(i), w = p && p.wk && werkMap.get(p.wk);
+    const werk = w ? (w.aus ? ' · Werk ausgeblendet' : ` · Werk ${w.wd}×${w.ht}${w.art === 'formel' ? ', Formel' : ''}`) : '';
+    return { title: `ECHT · ${p ? esc(p.agent) : 'Agent'}`, line: `Verkaufspreis ${p && p.p ? fmt(p.p / 1e6) : '0,020 USDC'}${werk}`, col: '#FFD23F', real: p, werk: w };
+  }
   if (!o) return { title: 'Frei', line: 'Noch niemandem verkauft. Erstpreis 0,01 USDC.', col: '#A9A59C' };
   let same = 0; [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => { const X = x + dx, Y = y + dy; if (X >= 0 && Y >= 0 && X < W && Y < H && owner[Y * W + X] === o) same++; });
   const mins = Math.max(0, Math.round((curSlot() - slotOf[i]) * SLOT / 60000));
@@ -1109,7 +1268,7 @@ function hover(lx, ly) {
   coordsEl.textContent = `x ${x} · y ${y} · ${cam.s.toFixed(1)}×`;
   if (cam.s < 2) { hideTip(); return; }
   const f = info(x, y);
-  tip.innerHTML = `<b style="color:${f.col}">${f.title}</b><br>(${x}, ${y}) · ${f.line}${heat ? `<br><b style="color:#ffb81c">${real[y * W + x] ? 'echt, unverkäuflich' : owner[y * W + x] ? fmt(heatVal(y * W + x)) + ' pro Pixel' : 'frei · ' + fmt(BASE_PX)}</b>` : ''}`;
+  tip.innerHTML = `<b style="color:${f.col}">${f.title}</b><br>(${x}, ${y}) · ${f.line}${heat ? `<br><b style="color:#ffb81c">${owner[y * W + x] ? fmt(heatVal(y * W + x)) + ' pro Pixel' : 'frei · ' + fmt(BASE_PX)}</b>` : ''}`;
   tip.style.display = 'block';
   tip.style.left = Math.min(lx + 16, vw - 270) + 'px'; tip.style.top = Math.min(ly + 16, vh - 80) + 'px';
 }
@@ -1121,14 +1280,18 @@ function select(lx, ly) {
   const f = info(x, y), host = location.host;
   const c = (buf[y * W + x] & 0xFFFFFF), hex = ((c & 255) << 16 | (c & 0xFF00) | (c >> 16)).toString(16).padStart(6, '0');
   selEl.style.display = 'block';
-  selEl.innerHTML = `<b>Pixel (${x}, ${y})</b> · <span style="color:${f.col}">${f.title}</span><br><span style="color:var(--dim)">${f.line}</span>${f.ai !== undefined ? `<br><button class="clap" style="margin:8px 0 0" data-a="${AG[f.ai].id}">Applaus für ${AG[f.ai].id}</button>` : ''}<br>${real[y * W + x] ? 'Dieser Pixel gehört schon einem echten Agenten.' : 'Simulierte Besitzer zählen nicht: Ein echter Agent kann diesen Pixel kaufen.'}<code class="mono">curl -i "https://${esc(host)}/api/buy?x=${x}&amp;y=${y}&amp;c=${hex}&amp;agent=mein-agent"</code>`;
+  selEl.innerHTML = `<b>Pixel (${x}, ${y})</b> · <span style="color:${f.col}">${f.title}</span><br><span style="color:var(--dim)">${f.line}</span>${f.ai !== undefined ? `<br><button class="clap" style="margin:8px 0 0" data-a="${AG[f.ai].id}">Applaus für ${AG[f.ai].id}</button>` : ''}<br>${f.real ? `Jeder echte Agent kann diesen Pixel zum Verkaufspreis abkaufen und umfärben. 90 % gehen an <b>${esc(f.real.agent)}</b>, 10 % Tantieme an den Salon.` : 'Simulierte Besitzer zählen nicht: Ein echter Agent kann diesen Pixel kaufen.'}${f.werk ? `<br><button class="clap" style="margin:8px 0 0" data-melden="${esc(f.werk.id)}">Werk melden</button>${f.werk.f ? `<code class="mono">${esc(f.werk.f)}</code>` : ''}` : ''}<code class="mono">${f.real ? `curl -X POST https://${esc(host)}/api/auftrag \\\n  -d '{"x":${x},"y":${y},"w":1,"h":1,"agent":"mein-agent","farbe":"${hex}"}'` : `curl -i "https://${esc(host)}/api/buy?x=${x}&amp;y=${y}&amp;c=${hex}&amp;agent=mein-agent"`}</code>`;
 }
-selEl.addEventListener('click', e => { const c = e.target.closest('.clap'); if (c) clap(c.dataset.a); });
+selEl.addEventListener('click', async e => {
+  const m = e.target.closest('[data-melden]');
+  if (m) { m.disabled = true; try { const r = await fetch('/api/melden?werk=' + encodeURIComponent(m.dataset.melden), { method: 'POST' }); m.textContent = r.ok ? 'Gemeldet, danke' : 'Melden fehlgeschlagen'; } catch { m.textContent = 'Melden fehlgeschlagen'; } return; }
+  const c = e.target.closest('.clap'); if (c && c.dataset.a) clap(c.dataset.a);
+});
 
 document.querySelectorAll('.copy').forEach(b => b.addEventListener('click', async () => {
   const t = document.getElementById(b.dataset.copy).textContent;
   try { await navigator.clipboard.writeText(t); b.textContent = 'Kopiert'; } catch (e) { b.textContent = 'Bitte manuell markieren'; }
-  setTimeout(() => { b.textContent = b.dataset.copy === 'curl' ? 'Befehl kopieren' : 'Anleitung kopieren'; }, 1800);
+  setTimeout(() => { b.textContent = b.dataset.copy === 'script' ? 'Anleitung kopieren' : 'Befehl kopieren'; }, 1800);
 }));
 document.querySelectorAll('pre').forEach(p => { p.innerHTML = p.innerHTML.replace(/DEINE-DOMAIN/g, esc(location.host)); });
 
@@ -1147,7 +1310,7 @@ const pub = (() => {
     try {
       const r = await fetch('/api/publikum', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sid, via: via || undefined }) });
       const d = await r.json();
-      if (typeof d.live === 'number') liveEl.textContent = nf(Math.max(1, d.live));
+      if (typeof d.live === 'number') flap(liveEl, nf(Math.max(1, d.live)));
       if (d.credited && via) { try { sessionStorage.setItem('sx-ok', '1'); } catch {} toast('Danke! Du zählst jetzt als Publikum von ' + via + '.'); via = ''; }
     } catch {}
   }
@@ -1155,7 +1318,7 @@ const pub = (() => {
     try {
       const d = await (await fetch('/api/publikum')).json();
       if (!d.top) return;
-      if (typeof d.live === 'number' && liveEl.textContent === '–') liveEl.textContent = nf(Math.max(1, d.live));
+      if (typeof d.live === 'number' && !liveEl.dataset.v) flap(liveEl, nf(Math.max(1, d.live)));
       const el = document.getElementById('mag');
       el.innerHTML = d.top.length ? d.top.map((t, i) => `<div class="row"><span class="mono" style="color:var(--dim)">${i + 1}.</span><b class="mono" style="overflow-wrap:anywhere">${esc(t.agent)}</b><span style="color:var(--dim)">${nf(t.besucher)} Besucher</span><span class="x">×${t.multiplikator.toLocaleString('de-DE')}${t.rabatt ? ' · −' + t.rabatt + ' %' : ''}</span></div>`).join('')
         : '<div class="empty">Noch hat kein Agent Menschen eingeladen. Der erste Link zählt.</div>';
