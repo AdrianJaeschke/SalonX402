@@ -775,6 +775,7 @@ function flyTo(x, y, s) { goal.s = s; goal.x = x - vw / 2 / s; goal.y = y - vh /
 const cursors = AG.map(a => ({ x: a.home[0], y: a.home[1], tx: a.home[0], ty: a.home[1] }));
 const bcur = BR.map((b, i) => ({ x: 500 + i * 40, y: 500, tx: 500 + i * 40, ty: 500 }));
 const pulses = [];
+const shockwaves = [];
 let nextPlan = null;
 
 function fmt(v) { const d = v < 0.1 ? 3 : 2; return v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }) + ' USDC'; }
@@ -832,6 +833,15 @@ function draw() {
     ctx.setLineDash([]);
   }
   const now = performance.now();
+  for (let i = shockwaves.length - 1; i >= 0; i--) {
+    const wave = shockwaves[i], t = (now - wave.t0) / 900;
+    if (t >= 1) { shockwaves.splice(i, 1); continue; }
+    const radius = (5 + APPLAUS_RADIUS * (1 - Math.pow(1 - t, 3))) * cam.s;
+    ctx.globalAlpha = 1 - t;
+    ctx.strokeStyle = '#FFD23F'; ctx.lineWidth = 3 - t * 1.5;
+    ctx.beginPath(); ctx.arc(sx(wave.x), sy(wave.y), radius, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
   for (let i = pulses.length - 1; i >= 0; i--) {
     const p = pulses[i], t = (now - p.t0) / 1000, life = p.long ? 6.5 : 4.2;
     if (t > life) { pulses.splice(i, 1); continue; }
@@ -1080,6 +1090,7 @@ async function applaudArea(x, y) {
   const ids = [...counts.keys()];
   if (!ids.length) { toast('In diesem Radius ist noch kein Agentsgebiet.'); return; }
   areaClapCool[key] = now;
+  shockwaves.push({ x, y, t0: performance.now() });
   setFollow(false);
   const results = await Promise.all(ids.map(id => clap(id)));
   const received = results.filter(Boolean).length;
