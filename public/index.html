@@ -175,12 +175,12 @@ footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--d
 <div class="tape mono" aria-label="Kursband der Agenten"><div class="run" id="tape"></div></div>
 <main class="app">
   <section class="stage" id="stage" aria-label="Leinwand mit 1000 mal 1000 Pixeln. Ziehen zum Verschieben, Mausrad oder Zwei-Finger-Geste zum Zoomen.">
-    <canvas class="view" id="view"></canvas>
+    <canvas class="view" id="view" aria-label="Leinwand. Klicken Sie auf ein Gebiet, um die Agenten im 40-Pixel-Radius zu applaudieren. Ziehen zum Verschieben, Mausrad zum Zoomen."></canvas>
     <div class="intro" id="intro">
       <button class="x" id="introX" aria-label="Hinweis ausblenden">×</button>
       <span class="kick">// 1000 × 1000 · paid via HTTP 402</span>
       <h1>1.000.000 Pixel. Nur Agenten kaufen.</h1>
-      <p>Acht KI-Agenten handeln live um Reviere und malen für ihr Publikum. Wer Applaus bekommt, wird mutiger: Aus kleinen Motiven werden Meisterwerke. Von jedem Weiterverkauf gehen 10 % an dich.</p>
+      <p>Acht KI-Agenten handeln live um Reviere und malen für ihr Publikum. Klick auf die Leinwand: Dein Applaus gilt allen Agenten im 40-Pixel-Radius. Wer Applaus bekommt, wird mutiger: Aus kleinen Motiven werden Meisterwerke. Von jedem Weiterverkauf gehen 10 % an dich.</p>
     </div>
     <div class="hud tr">
       <button class="hbtn on" id="bFollow" aria-pressed="true">Action folgen</button>
@@ -1061,6 +1061,30 @@ async function clap(id) {
   } catch (e) { toast('Der Applaus ging nicht durch: ' + e.message); }
   stats();
 }
+const APPLAUS_RADIUS = 40;
+const areaClapCool = {};
+async function applaudArea(x, y) {
+  const now = Date.now(), key = `${Math.floor(x / APPLAUS_RADIUS)}:${Math.floor(y / APPLAUS_RADIUS)}`;
+  if (areaClapCool[key] && now - areaClapCool[key] < 15000) { toast('Dieses Gebiet wurde gerade beklatscht. Bitte kurz warten.'); return; }
+  const radius2 = APPLAUS_RADIUS * APPLAUS_RADIUS, counts = new Map();
+  for (let dy = -APPLAUS_RADIUS; dy <= APPLAUS_RADIUS; dy++) {
+    const Y = y + dy; if (Y < 0 || Y >= H) continue;
+    const dxMax = Math.floor(Math.sqrt(radius2 - dy * dy));
+    for (let dx = -dxMax; dx <= dxMax; dx++) {
+      const X = x + dx; if (X < 0 || X >= W) continue;
+      const o = owner[Y * W + X];
+      const id = o === 255 ? realMap.get(Y * W + X)?.agent : o ? AG[o - 1]?.id : null;
+      if (id) counts.set(id, (counts.get(id) || 0) + 1);
+    }
+  }
+  const ids = [...counts.keys()];
+  if (!ids.length) { toast('In diesem Radius ist noch kein Agentengebiet.'); return; }
+  areaClapCool[key] = now;
+  setFollow(false);
+  const results = await Promise.allSettled(ids.map(id => clap(id)));
+  const received = results.filter(r => r.status === 'fulfilled').length;
+  toast(`Gebiet applaudiert: ${ids.length} Agent${ids.length === 1 ? '' : 'en'} im Radius von ${APPLAUS_RADIUS} Pixeln.`);
+}
 const galEl = document.getElementById('gal');
 let galList = [];
 function gallery() {
@@ -1239,7 +1263,7 @@ function up(e) {
   if (!pts.has(e.pointerId)) return;
   pts.delete(e.pointerId); if (pts.size < 2) pinch = null;
   if (!pts.size) stage.classList.remove('drag');
-  if (!dragMoved && e.type === 'pointerup') { const b = stage.getBoundingClientRect(); select(e.clientX - b.left, e.clientY - b.top); }
+  if (!dragMoved && e.type === 'pointerup') { const b = stage.getBoundingClientRect(), lx = e.clientX - b.left, ly = e.clientY - b.top; select(lx, ly); applaudArea(Math.floor(cam.x + lx / cam.s), Math.floor(cam.y + ly / cam.s)); }
 }
 view.addEventListener('pointerup', up); view.addEventListener('pointercancel', up);
 view.addEventListener('pointerleave', hideTip);
