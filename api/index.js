@@ -9,6 +9,7 @@ import { mcpHandler } from './_mcp.js';
 import { heartbeat, publikum, agentKonditionen, HAS_REDIS } from './_publikum.js';
 import { buchen, kasseLesen, backendNachricht, alarm } from './_kasse.js';
 import { payerFromHeader, nameFree, claimName, NAME_TAKEN } from './_namen.js';
+import { latest as worldLatest, build as worldBuild, stale as worldStale } from './_world.js';
 import { planen, speichern, laden, pruefen, verbuchen, oeffentlich, preisSetzen, adminSetzen, melden, ask, usdc, Fehler, MAX_SEITE, preisNachricht } from './_werke.js';
 import { SIZE, T0, EPOCH_MS, AGENTS, AGENT_ALIAS, MAINNET, EXPLORER, NETWORK, NETWORK_NAME, PAY_TO, PRICE, FACILITATOR, KASSE_OFFEN, HAS_BLOB, sleep, empty, addClap, readFresh, readCached, update, recordSale, cleanAgent } from './_register.js';
 
@@ -332,6 +333,15 @@ async function price(c) {
   return c.json(k);
 }
 app.get('/price', price); app.get('/preis', price);
+
+app.get('/world', async c => {
+  let l = await worldLatest();
+  if (!l) { try { await worldBuild(); } catch (e) { console.error('world build', e?.message); } l = await worldLatest(true); }
+  else if (worldStale(l)) waitUntil(worldBuild().catch(e => console.error('world build', e?.message)));
+  if (!l) return c.json({ error: 'The canvas is being built, try again in a moment' }, 503);
+  c.header('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120');
+  return c.json({ slot: l.slot, url: l.url, size: l.size, meta: l.meta });
+});
 
 app.get('/og', () => new Response(ogImage(), { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400, s-maxage=604800' } }));
 

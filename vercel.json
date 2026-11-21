@@ -49,5 +49,11 @@
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "public/sim.js",
+      "maxDuration": 60
+    }
+  }
 }
