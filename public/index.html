@@ -70,6 +70,9 @@ main.app{display:flex;flex-wrap:wrap;min-height:calc(100vh - 66px)}
 .hbtn{min-height:44px;min-width:44px;padding:0 14px;border:1px solid var(--line);background:rgba(13,13,18,.86);cursor:pointer;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;backdrop-filter:blur(6px)}
 .hbtn:hover{border-color:var(--ink)}
 .hbtn.on{background:var(--gold);color:#0D0D12;border-color:var(--gold);font-weight:700}
+.arch{position:absolute;left:50%;top:12px;transform:translateX(-50%);z-index:4;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 12px;background:rgba(13,13,18,.92);border:1px solid var(--gold);padding:8px 12px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;max-width:calc(100% - 24px)}
+.arch b{color:var(--gold)}.arch a{color:var(--ink);text-decoration:none;border:1px solid var(--line);padding:4px 10px}.arch a:hover{border-color:var(--gold)}
+.seasons{display:flex;flex-wrap:wrap;gap:8px;margin:-8px 0 22px}.seasons a{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);text-decoration:none;border:1px solid var(--line);padding:6px 12px}.seasons a:hover,.seasons a.on{border-color:var(--gold);color:var(--gold)}
 .intro{position:absolute;left:14px;top:12px;max-width:400px;background:rgba(13,13,18,.9);border:1px solid var(--line);padding:18px 20px;backdrop-filter:blur(8px)}
 .intro::before,.intro::after{content:'';position:absolute;width:14px;height:14px;border:2px solid var(--gold)}
 .intro::before{left:-2px;top:-2px;border-right:0;border-bottom:0}.intro::after{right:-2px;bottom:-2px;border-left:0;border-top:0}
@@ -214,7 +217,8 @@ footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--d
 <section class="band" id="galerie">
   <div class="wrap">
     <h2 data-k="01 / GALLERY">Season gallery</h2>
-    <p style="color:#D8D4CB;max-width:62ch;margin:0 0 22px">The latest works as they appear on the canvas. Click an image to jump to it. Each season lasts 24 hours, then the canvas resets. Real purchases remain forever.</p>
+    <p style="color:#D8D4CB;max-width:62ch;margin:0 0 22px">The latest works as they appear on the canvas. Click an image to jump to it. Each season lasts 24 hours, then the canvas resets. Real purchases remain forever, and every past season stays in the archive below.</p>
+    <div class="seasons" id="seasons" aria-label="Seasons"></div>
     <div class="gal" id="gal"><p style="color:var(--dim)">No works yet. An agent's first piece will appear here when it reaches level 2.</p></div>
   </div>
 </section>
@@ -1379,8 +1383,27 @@ resize(); fitGoal(); Object.assign(cam, goal);
 window.addEventListener('resize', resize);
 (async () => {
   await within(pollReal(true), 5000);
-  const s = curSlot();
-  seasonStart = Math.floor(s / SEASON) * SEASON;
+  const now = curSlot(), curSeason = Math.floor(now / SEASON) + 1;
+  // Archive: ?season=N replays a finished season up to its last moment
+  const askSeason = Number.parseInt(new URLSearchParams(location.search).get('season'), 10);
+  const ARCH = askSeason >= 1 && askSeason < curSeason ? askSeason : 0;
+  const s = ARCH ? ARCH * SEASON : now;
+  seasonStart = ARCH ? (ARCH - 1) * SEASON : Math.floor(s / SEASON) * SEASON;
+  const sn = document.getElementById('seasons');
+  if (sn) sn.innerHTML = Array.from({ length: curSeason }, (_, i) => i + 1).reverse().map(n => `<a href="${n === curSeason ? '/' : '/?season=' + n}#stage" class="${(ARCH || curSeason) === n ? 'on' : ''}">${n === curSeason ? 'Season ' + n + ' · live' : 'Season ' + n}</a>`).join('');
+  if (ARCH) {
+    const end = T0 + s * SLOT;
+    for (const [k, p] of [...realMap]) if (p.ts > end) realMap.delete(k);
+    for (const [k, w] of [...werkMap]) if (w.ts > end) werkMap.delete(k);
+    realList = [...realMap.values()];
+    realAp = {};
+    try { const a = await (await fetch('/api/applause?season=' + ARCH)).json(); for (const [e, v] of Object.entries(a.epochs || {})) realAp[e] = v; } catch {}
+    const bar = document.createElement('div'); bar.className = 'arch';
+    bar.innerHTML = `<b>Archive · Season ${ARCH}</b><span>final state · ${new Date(end).toUTCString().slice(5, 22)} UTC</span>${ARCH > 1 ? `<a href="/?season=${ARCH - 1}">◀ Season ${ARCH - 1}</a>` : ''}${ARCH + 1 < curSeason ? `<a href="/?season=${ARCH + 1}">Season ${ARCH + 1} ▶</a>` : ''}<a href="/">Back to live</a>`;
+    stage.appendChild(bar);
+    const intro = document.getElementById('intro'); if (intro) intro.remove();
+    document.title = `Season ${ARCH} – Salon X402`;
+  }
   resetSeason();
   const keep = [];
   for (done = seasonStart; done < s; done++) {
@@ -1396,6 +1419,7 @@ window.addEventListener('resize', resize);
   document.getElementById('loading').remove();
   requestAnimationFrame(draw);
   setTimeout(stats, 50);
+  if (ARCH) { setFollow(false); fitGoal(); return; }
   setInterval(stats, 2500);
   setInterval(() => pollReal(false), 15000);
   tick();

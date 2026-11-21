@@ -30,9 +30,11 @@ function limited(c, bucket, n) {
 const ipOf = c => (c.req.header('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
 const hasPayment = c => !!(c.req.header('payment-signature') || c.req.header('x-payment'));
 const fix = a => AGENT_ALIAS[a] || a;
-function applausView(d) {
+const EPOCHS_PER_SEASON = 144; // 24 h of 10-minute rounds
+function applausView(d, season) {
   const eNow = Math.floor((Date.now() - T0) / EPOCH_MS), epochs = {}, total = {};
-  for (const [e, v] of Object.entries(d.ap.epochs)) if (+e <= eNow - 1 && +e >= eNow - 160) { epochs[e] = {}; for (const [a, n] of Object.entries(v)) epochs[e][fix(a)] = (epochs[e][fix(a)] || 0) + n; }
+  const lo = season ? (season - 1) * EPOCHS_PER_SEASON - 2 : eNow - 160, hi = season ? Math.min(eNow - 1, season * EPOCHS_PER_SEASON) : eNow - 1;
+  for (const [e, v] of Object.entries(d.ap.epochs)) if (+e <= hi && +e >= lo) { epochs[e] = {}; for (const [a, n] of Object.entries(v)) epochs[e][fix(a)] = (epochs[e][fix(a)] || 0) + n; }
   for (const [a, n] of Object.entries(d.ap.total)) total[fix(a)] = (total[fix(a)] || 0) + n;
   return { eNow, epochMs: EPOCH_MS, t0: T0, epochs, total };
 }
@@ -304,8 +306,10 @@ function clap(c) {
 async function clapView(c) {
   let d = empty();
   if (HAS_BLOB) { try { d = await readCached(); } catch {} }
-  c.header('Cache-Control', 'public, s-maxage=20, stale-while-revalidate=60');
-  return c.json(applausView(d));
+  const season = Number.parseInt(c.req.query('season'), 10);
+  const past = season >= 1 && season * EPOCHS_PER_SEASON < Math.floor((Date.now() - T0) / EPOCH_MS);
+  c.header('Cache-Control', past ? 'public, s-maxage=86400' : 'public, s-maxage=20, stale-while-revalidate=60');
+  return c.json(applausView(d, season >= 1 ? season : 0));
 }
 app.post('/applause', clap); app.post('/applaus', clap);
 app.get('/applause', clapView); app.get('/applaus', clapView);
