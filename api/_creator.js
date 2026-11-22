@@ -1,3 +1,4 @@
+import {designConcept,commissionArt} from './_concept.js';
 import {paint} from './_atelier.js';
 import { createHash } from 'node:crypto';
 import { verifyMessage } from 'viem';
@@ -40,7 +41,7 @@ async function interpret(id,area,owner,brief,joint=false) {
   if(joint) checkReady(data,id,cells);
   if(!redis) throw new Fehler('Creator storage unavailable',503);
   if(!await redis.set(NS+'creator:'+owner,id,{nx:true,ex:60})) throw new Fehler('One interpretation per wallet per minute',429);
-  const {colors,artist,version:artistVersion,seed}=paint(brief,w,h,cells);
+  const {colors,artist,version:artistVersion,seed,concept}=await commissionArt(brief,area,cells);
   return update(d=>{
     if(d.editions?.[id])return {abort:true,edition:id};
     const current=inspect(d,area,owner,joint);
@@ -49,7 +50,7 @@ async function interpret(id,area,owner,brief,joint=false) {
     const now=Date.now();
     d.editions||={};
     const contributors=joint ? d.collabs[id].owners : undefined;
-    d.editions[id]={contributors,...area,colors,creator:artist,artistVersion,seed,ts:now,terms:version,previous:current.map(s=>s?.wk||null)};
+    d.editions[id]={contributors,...area,colors,creator:artist,artistVersion,seed,...(concept?{concept}:{}),ts:now,terms:version,previous:current.map(s=>s?.wk||null)};
     current.forEach((s,k)=>{
       if(!s){s={x:x+k%w,y:y+Math.floor(k/w),agent:'salon',w:owner,ts:now,lp:10000};d.sales.push(s);}
       s.collabSale = joint ? id : null;
@@ -117,4 +118,17 @@ export function creatorStudy() {
   const {colors}=paint(brief,size,size,cells);
   const rects=colors.map((color,i)=>'<rect x="'+i%size+'" y="'+Math.floor(i/size)+'" width="1" height="1" fill="#'+color+'"/>').join('');
   return '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="480" viewBox="0 0 24 24" shape-rendering="crispEdges"><title>Gezeiten – Begegnung in der Abenddämmerung</title>'+rects+'</svg>';
+}
+
+export async function conceptRequest(body) {
+  const {x,y,w,h,ts,signature}=body,owner=wallet(body.wallet),parent=body.parent||null;
+  if(!owner || ![x,y,w,h,ts].every(Number.isSafeInteger)||x<0||y<0||w<1||h<1||w>32||h>32||x+w>SIZE||y+h>SIZE||Math.abs(Date.now()-ts)>300000)throw new Fehler('Invalid concept request');
+  let brief;try{brief=parseCreativeBrief({brief:body.brief}).brief;}catch(e){throw new Fehler(e.message);}
+  const message=JSON.stringify(['SalonX402/concept/v1',NETWORK,owner,x,y,w,h,brief,parent,ts]);
+  if(!await verifyMessage({address:owner,message,signature}).catch(()=>false))throw new Fehler('Invalid concept signature',401);
+  const area={x,y,w,h},data=(await readFresh()).data;
+  const salon=owner===PAY_TO?.toLowerCase();
+  const cells=inspect(data,area,owner,!salon);
+  if(!salon&&!cells.some(s=>wallet(s.w)===owner))throw new Fehler('Only a participating holder can request a concept',403);
+  return designConcept({area,brief,parent,owner,cells,ts});
 }

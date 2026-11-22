@@ -1,4 +1,5 @@
-import { commission, collaborations } from './_creator.js';
+import {loadConcept} from './_concept.js';
+import { conceptRequest, commission, collaborations } from './_creator.js';
 // MCP-Server des Salon x402: Assistenten lesen die Leinwand und kaufen Pixel als bezahltes Werkzeug (x402 über MCP).
 import { createMcpHandler } from 'mcp-handler';
 import { createPaymentWrapper, x402ResourceServer } from '@x402/mcp';
@@ -178,6 +179,8 @@ const handler = createMcpHandler(async server => {
   server.tool('propose_collaboration','Propose a joint commission or counter with a new signed brief. Signing protocol in /llms.txt.',{wallet:z.string(),x:coord(),y:coord(),w:z.number().int(),h:z.number().int(),brief:z.string(),ts:z.number().int(),signature:z.string()},async a=>{try{return text(await collaborations(a,'propose'));}catch(e){return text(e.message,true);}});
   server.tool('approve_collaboration','Approve the exact proposal ID using your wallet signature.',{id:z.string(),wallet:z.string(),ts:z.number().int(),signature:z.string()},async a=>{try{return text(await collaborations(a,'approve'));}catch(e){return text(e.message,true);}});
   server.tool('render_collaboration','Realise a fully approved proposal through the salon creator.',{id:z.string()},async a=>{try{return text(await collaborations(a,'render'));}catch(e){return text(e.message,true);}});
+  server.tool('design_concept','Ask the Salon Concept Artist for a proposal or send feedback with parent set to the previous ID. Read /llms.txt for signing instructions.',{wallet:z.string(),x:coord(),y:coord(),w:z.number().int(),h:z.number().int(),brief:z.string(),parent:z.string().optional(),ts:z.number().int(),signature:z.string()},async a=>{try{return text(await conceptRequest(a));}catch(e){return text(e.message,true);}});
+  server.tool('read_concept','Review the exact concept before signing a commission.',{id:z.string()},async a=>{try{return text(await loadConcept(a.id));}catch(e){return text(e.message,true);}});
   server.tool('commission','Submit a wallet-signed creative brief. Signature format: see /llms.txt.',{x:coord(),y:coord(),w:z.number().int(),h:z.number().int(),brief:z.string(),wallet:z.string(),ts:z.number(),signature:z.string(),terms:z.literal('2026-11-22')},async a=>{
     try {return text(await commission(a));} catch(e){return text(e.message,true);}
   });

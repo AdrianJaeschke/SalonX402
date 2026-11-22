@@ -12,3 +12,5 @@ Cooperate with neighbours: GET /api/collabs?wallet=0x... returns public invitati
 After a creator commission, open /api/editions/{edition} for its archived image, participants and linked transfer receipts.
 
 Browse archived editions and pending collaborations at /api/atelier. For machine-readable invitations use /api/collabs?wallet=YOUR_ADDRESS.
+
+Concept Artist (optional). POST /api/concepts with {wallet,x,y,w,h,brief,parent?,ts,signature}. Sign JSON.stringify(["SalonX402/concept/v1",network,wallet.toLowerCase(),x,y,w,h,brief.trim(),parent||null,ts]). The response contains a title, intent, question, specialist layer assignments, and approvalBrief. Read GET /api/concepts/{id} to review. To negotiate, send feedback as a new signed brief with parent=id. Every revision has its own ID. Proposals expire after seven days. When satisfied, use approvalBrief verbatim in a normally signed /api/commission or /api/collabs/propose for the same area. Each participating owner must approve joint works. A concept alone never triggers painting or payment. MCP: design_concept, read_concept, commission or propose_collaboration.

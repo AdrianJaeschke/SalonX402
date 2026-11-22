@@ -14,7 +14,7 @@ globalThis.salonFixture={
   read:()=>structuredClone(data), update:fn=>{const copy=structuredClone(data);const r=fn(copy);if(!r?.abort)data=copy;return r;},cache
 };
 const modules={
-  './_register.js':`export const NETWORK='${network}',SIZE=1000,PAY_TO='${salon}',NS='',cleanAgent=String,redis={set:async()=>true},readCached=async()=>salonFixture.read(),readFresh=async()=>({data:salonFixture.read()}),update=async fn=>salonFixture.update(fn);`,
+  './_register.js':`export const NETWORK='${network}',SIZE=1000,PAY_TO='${salon}',NS='',cleanAgent=String,redis={get:async k=>salonFixture.cache.get(k),set:async(k,v)=>{salonFixture.cache.set(k,v);return true},incr:async()=>1,expire:async()=>true},readCached=async()=>salonFixture.read(),readFresh=async()=>({data:salonFixture.read()}),update=async fn=>salonFixture.update(fn);`,
   '@vercel/functions':'export const getCache=()=>salonFixture.cache;',
   './_publikum.js':'export const agentKonditionen=async()=>({atomic:10000});',
   './_kasse.js':'export const buchen=async()=>{},alarm=async()=>{};',
@@ -56,4 +56,31 @@ test('joint edition, stale quotes, partial payments, transfer receipt and per-pi
     assert.equal(JSON.parse(receipt.payload).pixels[0].previousWallet,A);
     for(const [x,fee] of [[0,100000],[1,50000],[2,50000]])assert.equal((await quote(x)).teile[0].anteil.tantiemen,fee*(x===0?2:1));
   }
+});
+
+test('buyer negotiates a revision before signing specialist execution',async()=>{
+  const {conceptRequest,commission}=await import('../api/_creator.js');
+  const original=globalThis.fetch;
+  process.env.CONCEPT_GATEWAY_KEY='fixture-only';
+  let calls=0;
+  globalThis.fetch=async(url,opts)=>{
+    const request=JSON.parse(opts.body);
+    assert.equal(request.reasoning.effort,'high');
+    const input=JSON.parse(request.messages[1].content);
+    if(calls++)assert.equal(input.previous.title,'Estuary');
+    const layers=['Gezeiten','Weberei'].map((artist,i)=>({artist,palette:'dusk',pace:'calm',region:i?'center':'all',opacity:i ? 0.4 : 1,purpose:'Trace the seam'}));
+    return Response.json({choices:[{message:{content:JSON.stringify({title:'Estuary',intent:input.brief,question:'More contrast?',layers})}}]});
+  };
+  try{
+    const area={x:1,y:0,w:1,h:1}, ts=Date.now();
+    const request=async(brief,parent=null)=>conceptRequest({...area,brief,parent,ts,wallet:A,signature:await alice.signMessage({message:JSON.stringify(['SalonX402/concept/v1',network,A,1,0,1,1,brief,parent,ts])})});
+    const before=structuredClone(data.sales);
+    const first=await request('Let two tides meet');
+    const revised=await request('Add more contrast',first.id);
+    assert.notEqual(revised.id,first.id);assert.deepEqual(data.sales,before);
+    const brief=revised.approvalBrief;
+    const done=await commission({...area,brief,ts,wallet:A,terms,signature:await alice.signMessage({message:JSON.stringify(['SalonX402/commission',network,terms,A,1,0,1,1,ts,brief])})});
+    assert.equal(data.editions[done.edition].seed,revised.id);
+    assert.equal(data.editions[done.edition].concept.layers.length,2);
+  }finally{globalThis.fetch=original;delete process.env.CONCEPT_GATEWAY_KEY;}
 });
