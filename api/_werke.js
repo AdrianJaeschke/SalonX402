@@ -85,7 +85,7 @@ export async function planen(spec) {
     const eligible = s.collabSale && s.wk === s.collabSale && d.editions?.[s.wk]?.contributors?.includes(w);
     const t = Math.round(a * (eligible ? 0.05 : TANTIEME));
     if (!w || w === SALON || (s.wk && versteckt.has(s.wk))) { add(SALON, a); anteil.rueckkauf += a; } else { add(w, a - t); add(SALON, t); anteil.tantiemen += t; }
-    nAbkauf++; snap.push([k, s.w || '', a]);
+    nAbkauf++; snap.push([k, s.w || '', a, s.wk || null, s.collabSale || null, s.tenure || null]);
   }
   if (teile.size > 6) throw new Fehler('Too many different owners in this area (max. 5). Please choose a smaller area.');
   // Salon-Teil zuerst, dann die Besitzer
@@ -128,6 +128,10 @@ export async function laden(id, frisch) {
 }
 
 // Vor einer Zahlung: ist der Auftrag noch gültig, hat sich an den Pixeln nichts geändert?
+function artworkChanged(entry, sale) {
+  return entry.length >= 6 && (entry[3] !== (sale.wk || null) || entry[4] !== (sale.collabSale || null) || entry[5] !== (sale.tenure || null));
+}
+
 export async function pruefen(id, nr, frisch) {
   const o = await laden(id, frisch);
   if (!o) throw new Fehler('Order not found or expired. Create a new one: POST /api/order', 404);
@@ -141,11 +145,12 @@ export async function pruefen(id, nr, frisch) {
   if (t.bezahlt) throw new Fehler('This part is already paid', 409);
   const d = frisch ? (await readFresh()).data : await readCached();
   const idx = index(d), sperren = aktiveSperren(d, o.id);
-  for (const [k, w, a] of o.snap) {
+  for (const entry of o.snap) {
+    const [k, w, a] = entry;
     if (sperren.has(k)) throw new Fehler('A pixel is now locked by another order', 409);
     const s = idx.get(k);
     if (!w && !a) { if (s) throw new Fehler(`Pixel (${k % SIZE}, ${Math.floor(k / SIZE)}) has been sold meanwhile. Create a new order.`, 409); continue; }
-    if (!s || (s.w || '') !== w || ask(s) !== a) throw new Fehler(`Owner or price of pixel (${k % SIZE}, ${Math.floor(k / SIZE)}) has changed. Create a new order.`, 409);
+    if (!s || (s.w || '') !== w || ask(s) !== a || artworkChanged(entry,s)) throw new Fehler(`Owner or price of pixel (${k % SIZE}, ${Math.floor(k / SIZE)}) has changed. Create a new order.`, 409);
   }
   return { o, t };
 }
@@ -180,9 +185,10 @@ async function verbuchenIntern(id, nr, payer, tx) {
     const previous = new Map(d.sales.map(s => [s.y * SIZE + s.x, s]));
     if (o.art === 'handel') {
       if (!kauf || o.teile.some(part=>!part.von || !part.tx)) return {abort:true,grund:'missing settlement evidence'};
-      for(const [position,expectedWallet,expectedPrice] of o.snap) {
+      for(const entry of o.snap) {
+        const [position,expectedWallet,expectedPrice] = entry;
         const old=previous.get(position);
-        if (old ? (old.w || '') !== (expectedWallet || '') || ask(old)!==expectedPrice : !!expectedWallet || !!expectedPrice)
+        if (old ? (old.w || '') !== (expectedWallet || '') || ask(old)!==expectedPrice || artworkChanged(entry,old) : !!expectedWallet || !!expectedPrice)
           return {abort:true,grund:'ownership or price changed during settlement'};
       }
       d.receipts ||= {};
@@ -241,3 +247,4 @@ export async function adminSetzen(b) {
 export async function melden(ids) {
   return update(d => { for (const [id, n] of ids) { const w = (d.werke || []).find(w => w.id === id); if (w) w.gemeldet = (w.gemeldet || 0) + n; } });
 }
+
