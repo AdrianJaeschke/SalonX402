@@ -58,12 +58,15 @@ function farben(spec, wd, ht, x, y) {
 
 // Plant einen Auftrag: welche Pixel frei sind, wem die anderen gehören, wer wie viel bekommt
 export async function planen(spec) {
+  if (!spec || typeof spec !== 'object') throw new Fehler('JSON object required');
   const x = Number.parseInt(spec.x, 10), y = Number.parseInt(spec.y, 10);
   const wd = Number.parseInt(spec.w ?? spec.width ?? 1, 10), ht = Number.parseInt(spec.h ?? spec.height ?? 1, 10);
   if (![x, y, wd, ht].every(Number.isInteger) || x < 0 || y < 0 || wd < 1 || ht < 1 || wd > MAX_SEITE || ht > MAX_SEITE || x + wd > SIZE || y + ht > SIZE)
     throw new Fehler(`Invalid area: x, y from 0, w and h from 1 to ${MAX_SEITE}, all inside 1000 × 1000`);
   const agent = cleanAgent(spec.agent);
-  const bild = farben({ ...spec, formel: spec.formel ?? spec.formula, pixel: spec.pixel ?? spec.pixels, farbe: spec.farbe ?? spec.color }, wd, ht, x, y);
+  if (spec.terms !== '2026-11-22') throw new Fehler('Read /terms.html and supply terms: 2026-11-22', 428);
+  if (['pixels','pixel','formula','formel','c','color','farbe'].some(k => k in spec)) throw new Fehler('Use a creative brief after purchase.');
+  const bild = { art: 'handel', c: '888888'.repeat(wd * ht), terms: spec.terms };
   const d = await readCached();
   const idx = index(d), sperren = aktiveSperren(d), versteckt = new Set((d.werke || []).filter(w => w.aus).map(w => w.id));
   const frei = (await agentKonditionen(agent)).atomic;
@@ -168,16 +171,22 @@ async function verbuchenIntern(id, nr, payer, tx) {
     // Übergabe
     const kauf = wallet(payer) || o.teile.find(t => t.von)?.von || '';
     const fl = new Set(); for (let j = 0; j < o.ht; j++) for (let i = 0; i < o.wd; i++) fl.add((o.y + j) * SIZE + o.x + i);
+    const previous = new Map(d.sales.map(s => [s.y * SIZE + s.x, s]));
     const alt = new Map(o.snap.map(([k, w, a]) => [k, a]));
     d.sales = d.sales.filter(s => !fl.has(s.y * SIZE + s.x));
     let n = 0;
     for (let j = 0; j < o.ht; j++) for (let i = 0; i < o.wd; i++, n++) {
       const k = (o.y + j) * SIZE + o.x + i, a = alt.get(k);
       const lp = a || o.frei || 10000;
+      if (o.art === 'handel') {
+        const prior = previous.get(k);
+        d.sales.push({ ...prior, x:o.x+i, y:o.y+j, c:prior?.c || '888888', w:kauf, lp, p:0, tx:tx || '', ts:now, agent:o.agent, tenure:o.id, terms:o.terms });
+        continue;
+      }
       d.sales.push({ x: o.x + i, y: o.y + j, c: o.c.slice(n * 6, n * 6 + 6), agent: o.agent, tx: tx || '', ts: now, w: kauf, lp, wk: o.id });
     }
     d.werke = d.werke.filter(w => d.sales.some(s => s.wk === w.id) || w.id === o.id);
-    d.werke.push({ id: o.id, agent: o.agent, w: kauf, x: o.x, y: o.y, wd: o.wd, ht: o.ht, art: o.art, ...(o.f ? { f: o.f } : {}), ts: now, abgekauft: o.nAbkauf, gemeldet: 0 });
+    if (o.art !== 'handel') d.werke.push({ id: o.id, agent: o.agent, w: kauf, x: o.x, y: o.y, wd: o.wd, ht: o.ht, art: o.art, ...(o.f ? { f: o.f } : {}), ts: now, abgekauft: o.nAbkauf, gemeldet: 0 });
     o.fertig = true; delete d.auftraege[id]; d.fertig[id] = { ...o, snap: [] };
     return { ok: true, fertig: true, o, teil: t };
   });

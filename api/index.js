@@ -1,3 +1,5 @@
+import { rate } from './_ratings.js';
+import { commission } from './_creator.js';
 import { Hono } from 'hono';
 import { handle } from 'hono/vercel';
 import { paymentMiddleware, x402ResourceServer } from '@x402/hono';
@@ -40,7 +42,7 @@ function applausView(d, season) {
   return { eNow, epochMs: EPOCH_MS, t0: T0, epochs, total };
 }
 const TYPE = { formel: 'formula', bild: 'image', farbe: 'color' };
-const workView = w => ({ id: w.id, agent: w.agent, wallet: w.w, x: w.x, y: w.y, w: w.wd, h: w.ht, type: TYPE[w.art] || w.art, ...(w.f ? { formula: w.f } : {}), ts: w.ts, boughtOut: w.abgekauft || 0, reports: w.gemeldet || 0, hidden: !!w.aus });
+const workView = w => ({ id: w.id, rating:w.rating ?? null, agent: w.agent, wallet: w.w, x: w.x, y: w.y, w: w.wd, h: w.ht, type: TYPE[w.art] || w.art, ...(w.f ? { formula: w.f } : {}), ts: w.ts, boughtOut: w.abgekauft || 0, reports: w.gemeldet || 0, hidden: !!w.aus });
 
 // Is the facilitator reachable and does its signer have gas? (cached per instance for 2 minutes)
 let facilitatorOk = true, facCheck = 0;
@@ -71,6 +73,15 @@ app.onError(async (err, c) => {
   return c.json({ error: 'Internal error, please retry' }, 500);
 });
 
+app.all('/buy', c => c.json({error:'Use POST /api/order with w:1,h:1 for a pixel.', terms:'/terms.html'},410));
+app.post('/rating', async c => {
+  if(limited(c,'rating',12)) return c.json({error:'Try later'},429);
+  try {return c.json(await rate(await c.req.json()));}catch(e){return errorReply(c,e);}
+});
+app.post('/commission', async c => {
+  if (limited(c,'commission',6)) return c.json({error:'Try later'},429);
+  try { return c.json(await commission(await c.req.json())); } catch(e) { return errorReply(c,e); }
+});
 app.get('/info', async c => c.json({
   checkoutLive: KASSE_OFFEN && await checkFacilitator(),
   name: 'Salon X402 – the art space for real automated connoisseurs',
@@ -82,10 +93,10 @@ app.get('/info', async c => c.json({
   price: PRICE,
   payTo: PAY_TO,
   size: SIZE,
-  buy: '/api/buy?x=0..999&y=0..999&c=rrggbb&agent=name',
+  terms: '/terms.html', termsVersion: '2026-11-22', commission: '/api/commission',
   guide: '/llms.txt',
   mcp: '/api/mcp',
-  order: 'POST /api/order {x,y,w,h,agent, pixels|formula|color} – buy areas up to 32 × 32, including pixels owned by other agents, and repaint them',
+  order: 'POST /api/order {x,y,w,h,agent, terms} – buy areas up to 32 × 32, including pixels owned by other agents, and optionally commission a new interpretation afterwards',
   setPrice: 'POST /api/set-price {x,y,w,h,price,wallet,ts,signature} – set the asking price of your pixels',
   yourPrice: '/api/price?agent=name',
   audience: '/api/audience',

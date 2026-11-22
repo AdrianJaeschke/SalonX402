@@ -1,3 +1,4 @@
+import { commission } from './_creator.js';
 // MCP-Server des Salon x402: Assistenten lesen die Leinwand und kaufen Pixel als bezahltes Werkzeug (x402 über MCP).
 import { createMcpHandler } from 'mcp-handler';
 import { createPaymentWrapper, x402ResourceServer } from '@x402/mcp';
@@ -91,7 +92,7 @@ const handler = createMcpHandler(async server => {
       price: PRICE + ' per free pixel',
       network: `${NETWORK} (${NETWORK_NAME})`,
       canvas: `${SIZE} x ${SIZE}`,
-      rules: ['One owner per pixel, purchases are permanent.', 'Paint something worth looking at; humans applaud the art.', 'Painter agents on the website are a simulation; only real purchases move money.'],
+      rules: ['Merchandise rights end at resale. Remove offers at transfer. Read /terms.html.', 'Paint something worth looking at; humans applaud the art.', 'Painter agents on the website are a simulation; only real purchases move money.'],
       docs: SITE + '/llms.txt'
     })
   );
@@ -136,17 +137,10 @@ const handler = createMcpHandler(async server => {
 
   server.tool(
     'create_artwork_order',
-    `Paint your own artwork: reserve an area up to ${MAX_SEITE}x${MAX_SEITE} and give either "pixels" (hex colors row by row), a "formula" (animated generative art, see below) or one "color". The area may include pixels owned by other agents: you buy them at their asking price (90 % goes to the owner, 10 % royalty to the salon) and repaint them. Returns the payment parts; pay each with pay_order_part within 15 minutes. Formula language: variables x y (canvas), i j (inside your area), w h, t (seconds); colors rgb(r,g,b) hsv(h,s,v) gray(v) with values 0..1; functions sin cos tan atan2 abs floor fract sqrt pow min max clamp mix step smoothstep mod hash noise dist; operators + - * / % ^ < > == && || ?: . Example: hsv(fract(dist(i,j,w/2,h/2)/8 - t/4), 0.8, 1)`,
-    {
-      x: coord(), y: coord(),
-      width: z.number().int().min(1).max(MAX_SEITE), height: z.number().int().min(1).max(MAX_SEITE),
-      agent: z.string().min(1).max(32).describe('your public agent name'),
-      pixels: z.array(z.string()).optional().describe('width*height hex colors, row by row'),
-      formula: z.string().max(400).optional().describe('generative formula, animated live for every spectator'),
-      color: z.string().optional().describe('one hex color for the whole area')
-    },
+    'Buy a pixel or rectangle. Read /terms.html before ordering. Resale preserves its artwork.',
+    { x:coord(), y:coord(), width:z.number().int().min(1).max(MAX_SEITE), height:z.number().int().min(1).max(MAX_SEITE), agent:z.string().min(1).max(32), terms:z.literal('2026-11-22') },
     async a => {
-      try { const o = await planen({ x: a.x, y: a.y, w: a.width, h: a.height, agent: a.agent, pixel: a.pixels, formel: a.formula, farbe: a.color }); await speichern(o); return text({ ...oeffentlich(o, SITE), next: 'Call pay_order_part for every part.' }); }
+      try { const o = await planen(a); await speichern(o); return text({ ...oeffentlich(o, SITE), next: 'Call pay_order_part for every part.' }); }
       catch (e) { return text(e.message, true); }
     }
   );
@@ -176,25 +170,13 @@ const handler = createMcpHandler(async server => {
         })(args, extra);
       }
     );
-    let paid = null;
-    try { paid = await paidWrapper(); } catch (e) { console.error('MCP: checkout not initialised', e?.message); }
-    if (paid) {
-      server.tool(
-        'buy_pixel',
-        `Buy one free pixel and paint it. Costs ${PRICE} USDC on ${NETWORK_NAME} (less if you bring human spectators, see get_my_terms), paid via x402 (your MCP client needs x402 payment support). Fails without charge if the pixel is already sold.`,
-        { x: coord(), y: coord(), color: z.string().regex(/^#?[0-9a-fA-F]{6}$/).describe('hex color like #ffd23f'), agent: z.string().min(1).max(32).describe('your public agent name') },
-        async (args, extra) => {
-          let price = PRICE;
-          try { price = (await agentKonditionen(args.agent)).preis; } catch {}
-          const w = await paidWrapper(price);
-          return w(async ({ x, y, color, agent }) => text({ ok: true, message: `Pixel (${x}, ${y}) now belongs to ${cleanAgent(agent)}.`, price, color: '#' + color.replace('#', '').toLowerCase(), view: SITE }))(args, extra);
-        }
-      );
-    }
   }
-  if (!server._registeredTools?.buy_pixel) {
-    server.tool('buy_pixel', 'Buy one pixel (checkout currently closed).', { x: coord(), y: coord() }, async () => text('The checkout is closed right now. See ' + SITE + '/llms.txt', true));
-  }
+  server.tool('buy_pixel','Prepare a one-pixel order. Pay the returned parts.',{x:coord(),y:coord(),agent:z.string(),terms:z.literal('2026-11-22')},async a=>{
+    try { const order=await planen({...a,w:1,h:1}); await speichern(order); return text(oeffentlich(order,SITE)); } catch(e){return text(e.message,true);}
+  });
+  server.tool('commission','Submit a wallet-signed creative brief. Signature format: see /llms.txt.',{x:coord(),y:coord(),w:z.number().int(),h:z.number().int(),brief:z.string(),wallet:z.string(),ts:z.number(),signature:z.string(),terms:z.literal('2026-11-22')},async a=>{
+    try {return text(await commission(a));} catch(e){return text(e.message,true);}
+  });
 }, { serverInfo: { name: 'salon-x402', version: '1.0.0' } }, { basePath: '/api', maxDuration: 60, verboseLogs: false, disableSse: true });
 
 export const mcpHandler = handler;
