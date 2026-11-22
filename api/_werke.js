@@ -82,7 +82,8 @@ export async function planen(spec) {
     const s = idx.get(k);
     if (!s) { add(SALON, frei); anteil.erstverkauf += frei; nFrei++; snap.push([k, 0, 0]); continue; }
     const a = ask(s), w = wallet(s.w);
-    const t = Math.round(a * TANTIEME);
+    const eligible = s.collabSale && s.wk === s.collabSale && d.editions?.[s.wk]?.contributors?.includes(w);
+    const t = Math.round(a * (eligible ? 0.05 : TANTIEME));
     if (!w || w === SALON || (s.wk && versteckt.has(s.wk))) { add(SALON, a); anteil.rueckkauf += a; } else { add(w, a - t); add(SALON, t); anteil.tantiemen += t; }
     nAbkauf++; snap.push([k, s.w || '', a]);
   }
@@ -102,9 +103,9 @@ export function oeffentlich(o, base = '') {
   const type = { formel: 'formula', bild: 'image', farbe: 'color' }[o.art] || o.art;
   return {
     order: o.id, ...(o.receipt ? {receipt:base+o.receipt} : {}), agent: o.agent, area: { x: o.x, y: o.y, w: o.wd, h: o.ht }, type, ...(o.f ? { formula: o.f } : {}),
-    freePixels: o.nFrei, boughtPixels: o.nAbkauf, deadline: new Date(o.frist).toISOString(),
+    salonRoyaltyMicroUSDC:o.teile.find(t=>t.salon)?.anteil?.tantiemen || 0, freePixels: o.nFrei, boughtPixels: o.nAbkauf, deadline: new Date(o.frist).toISOString(),
     total: usdc(o.teile.reduce((a, t) => a + t.betrag, 0)) + ' USDC',
-    parts: o.teile.map(t => ({ part: t.nr, to: t.salon ? 'salon (free pixels + 10 % royalty)' : t.an, amount: usdc(t.betrag) + ' USDC', paid: t.bezahlt, ...(t.tx ? { tx: t.tx } : {}), ...(!t.bezahlt ? { pay: `${base}/api/order/pay?id=${o.id}&part=${t.nr}` } : {}) })),
+    parts: o.teile.map(t => ({ part: t.nr, to: t.salon ? 'salon (free pixels and quoted resale fees)' : t.an, amount: usdc(t.betrag) + ' USDC', paid: t.bezahlt, ...(t.tx ? { tx: t.tx } : {}), ...(!t.bezahlt ? { pay: `${base}/api/order/pay?id=${o.id}&part=${t.nr}` } : {}) })),
     status: o.fertig ? 'complete' : offen.length === o.teile.length ? 'open' : 'partially paid',
     note: o.fertig ? 'The work hangs on the canvas.' : 'Pay every open part via x402 (GET its pay URL). The area is yours once all parts are paid. Unpaid orders expire at the deadline; parts already paid stay with their recipients.'
   };
@@ -196,7 +197,7 @@ async function verbuchenIntern(id, nr, payer, tx) {
       const lp = a || o.frei || 10000;
       if (o.art === 'handel') {
         const prior = previous.get(k);
-        d.sales.push({ ...prior, x:o.x+i, y:o.y+j, c:prior?.c || '888888', w:kauf, lp, p:0, tx:tx || '', ts:now, agent:o.agent, tenure:o.id, terms:o.terms });
+        d.sales.push({ ...prior, collabSale:null, x:o.x+i, y:o.y+j, c:prior?.c || '888888', w:kauf, lp, p:0, tx:tx || '', ts:now, agent:o.agent, tenure:o.id, terms:o.terms });
         continue;
       }
       d.sales.push({ x: o.x + i, y: o.y + j, c: o.c.slice(n * 6, n * 6 + 6), agent: o.agent, tx: tx || '', ts: now, w: kauf, lp, wk: o.id });

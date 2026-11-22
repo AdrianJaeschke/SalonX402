@@ -35,3 +35,9 @@ Rechtsverletzende Aufträge und Motive können über die E-Mail im Impressum gem
 ## Übergabebelege
 
 Bei bestätigter Umbuchung erhalten Käufer und bisherige Inhaber Zugriff auf einen digital signierten Beleg. Er dokumentiert den Stand der Übertragung. Spätere Umbuchungen sind für den aktuellen Stand zu berücksichtigen.
+
+## Gemeinsame Aufträge und reduzierte Tantieme
+
+Inhaber benachbarter Pixel können für eine zusammenhängende rechteckige Fläche ein öffentliches Briefing vorschlagen. Alle beteiligten Wallets müssen derselben Fassung zustimmen. Vorschläge gelten 24 Stunden. Änderungen werden als neuer Vorschlag eingereicht. Bei zwischenzeitlichem Besitzwechsel oder geänderter Gestaltung ist eine neue Freigabe erforderlich. Der Salon veröffentlicht die bestätigten Beteiligten bei der gemeinsamen Edition. Die bisherige Lizenz jedes Teilnehmers gilt für seine eigenen Pixel.
+
+Beim ersten regulären Weiterverkauf eines gemeinsam gestalteten Pixels durch die beteiligte Wallet erhält der Salon 5 % und die verkaufende Wallet 95 % des Verkaufspreises, mit Rundung auf Mikro-USDC. Der Vorteil gilt ab Veröffentlichung der gemeinsamen Fassung und endet für diesen Pixel mit Weiterverkauf oder neuer Einzelgestaltung. Für spätere Verkäufe gilt wieder der reguläre Satz, bis eine neue gemeinsame Edition entsteht. Sonderfälle für ausgeblendete Werke und Verkäufe des Salons bleiben nach den allgemeinen Regeln abzurechnen.

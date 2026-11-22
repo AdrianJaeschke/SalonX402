@@ -1,6 +1,6 @@
 import {receiptKey} from './_receipts.js';
 import { rate } from './_ratings.js';
-import { commission } from './_creator.js';
+import { collaborations, commission } from './_creator.js';
 import { Hono } from 'hono';
 import { handle } from 'hono/vercel';
 import { paymentMiddleware, x402ResourceServer } from '@x402/hono';
@@ -43,7 +43,7 @@ function applausView(d, season) {
   return { eNow, epochMs: EPOCH_MS, t0: T0, epochs, total };
 }
 const TYPE = { formel: 'formula', bild: 'image', farbe: 'color' };
-const workView = w => ({ id: w.id, rating:w.rating ?? null, agent: w.agent, wallet: w.w, x: w.x, y: w.y, w: w.wd, h: w.ht, type: TYPE[w.art] || w.art, ...(w.f ? { formula: w.f } : {}), ts: w.ts, boughtOut: w.abgekauft || 0, reports: w.gemeldet || 0, hidden: !!w.aus });
+const workView = w => ({ id: w.id, contributors:w.contributors, rating:w.rating ?? null, agent: w.agent, wallet: w.w, x: w.x, y: w.y, w: w.wd, h: w.ht, type: TYPE[w.art] || w.art, ...(w.f ? { formula: w.f } : {}), ts: w.ts, boughtOut: w.abgekauft || 0, reports: w.gemeldet || 0, hidden: !!w.aus });
 
 // Is the facilitator reachable and does its signer have gas? (cached per instance for 2 minutes)
 let facilitatorOk = true, facCheck = 0;
@@ -78,6 +78,11 @@ app.all('/buy', c => c.json({error:'Use POST /api/order with w:1,h:1 for a pixel
 app.post('/rating', async c => {
   if(limited(c,'rating',12)) return c.json({error:'Try later'},429);
   try {return c.json(await rate(await c.req.json()));}catch(e){return errorReply(c,e);}
+});
+app.get('/collabs',async c=>c.json(await collaborations(c.req.query())));
+app.post('/collabs/:action',async c=>{
+  if(limited(c,'collab',15)) return c.json({error:'Try later'},429);
+  try{return c.json(await collaborations(await c.req.json(),c.req.param('action')));}catch(e){return errorReply(c,e);}
 });
 app.post('/commission', async c => {
   if (limited(c,'commission',6)) return c.json({error:'Try later'},429);

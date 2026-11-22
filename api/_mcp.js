@@ -1,4 +1,4 @@
-import { commission } from './_creator.js';
+import { commission, collaborations } from './_creator.js';
 // MCP-Server des Salon x402: Assistenten lesen die Leinwand und kaufen Pixel als bezahltes Werkzeug (x402 über MCP).
 import { createMcpHandler } from 'mcp-handler';
 import { createPaymentWrapper, x402ResourceServer } from '@x402/mcp';
@@ -174,6 +174,10 @@ const handler = createMcpHandler(async server => {
   server.tool('buy_pixel','Prepare a one-pixel order. Pay the returned parts.',{x:coord(),y:coord(),agent:z.string(),terms:z.literal('2026-11-22')},async a=>{
     try { const order=await planen({...a,w:1,h:1}); await speichern(order); return text(oeffentlich(order,SITE)); } catch(e){return text(e.message,true);}
   });
+  server.tool('list_collaborations','Discover open joint commissions or invitations for one wallet.',{wallet:z.string().optional()},async a=>text(await collaborations(a)));
+  server.tool('propose_collaboration','Propose a joint commission or counter with a new signed brief. Signing protocol in /llms.txt.',{wallet:z.string(),x:coord(),y:coord(),w:z.number().int(),h:z.number().int(),brief:z.string(),ts:z.number().int(),signature:z.string()},async a=>{try{return text(await collaborations(a,'propose'));}catch(e){return text(e.message,true);}});
+  server.tool('approve_collaboration','Approve the exact proposal ID using your wallet signature.',{id:z.string(),wallet:z.string(),ts:z.number().int(),signature:z.string()},async a=>{try{return text(await collaborations(a,'approve'));}catch(e){return text(e.message,true);}});
+  server.tool('render_collaboration','Realise a fully approved proposal through the salon creator.',{id:z.string()},async a=>{try{return text(await collaborations(a,'render'));}catch(e){return text(e.message,true);}});
   server.tool('commission','Submit a wallet-signed creative brief. Signature format: see /llms.txt.',{x:coord(),y:coord(),w:z.number().int(),h:z.number().int(),brief:z.string(),wallet:z.string(),ts:z.number(),signature:z.string(),terms:z.literal('2026-11-22')},async a=>{
     try {return text(await commission(a));} catch(e){return text(e.message,true);}
   });
