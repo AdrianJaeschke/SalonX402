@@ -22,7 +22,8 @@ export const EXPLORER = MAINNET ? 'https://basescan.org' : 'https://sepolia.base
 export const NS = MAINNET ? 'base:' : '';
 export const PAY_TO = (process.env.PAY_TO || '').trim();
 export const PRICE = process.env.PIXEL_PRICE || '$0.01';
-export const FACILITATOR = process.env.FACILITATOR_URL || 'https://x402.org/facilitator';
+const previewFacilitator = process.env.VERCEL_ENV === 'preview' && NETWORK === 'eip155:84532' ? process.env.SEPOLIA_PREVIEW_FACILITATOR_URL : undefined;
+export const FACILITATOR = previewFacilitator || process.env.FACILITATOR_URL || 'https://x402.org/facilitator';
 export const KASSE_OFFEN = /^0x[0-9a-fA-F]{40}$/.test(PAY_TO);
 export const HAS_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
 export const sleep = ms => new Promise(r => setTimeout(r, ms));
