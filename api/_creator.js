@@ -1,3 +1,5 @@
+import {AsyncLocalStorage} from 'node:async_hooks';
+export const creatorAuth = new AsyncLocalStorage();
 import { createHash } from 'node:crypto';
 import { verifyMessage } from 'viem';
 import { parseCreativeBrief } from './_briefing.js';
@@ -106,7 +108,7 @@ export async function collaborations(input={},action='list') {
 async function generateArtwork(brief,w,h,cells) {
   const endpoint=process.env.CREATOR_GENERATE_URL;
   const model=process.env.CREATOR_MODEL || (endpoint ? null : 'openai/gpt-4.1-mini');
-  const token=endpoint ? process.env.CREATOR_TOKEN : (process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN);
+  const token=endpoint ? process.env.CREATOR_TOKEN : (process.env.AI_GATEWAY_API_KEY || creatorAuth.getStore() || process.env.VERCEL_OIDC_TOKEN);
   if(!model || (!endpoint && !token)) throw new Fehler('Creator credentials or model unavailable',503);
   const system='You are the Salon pixel artist. Interpret the brief against the previous composition. Return JSON with colors (four 6-digit RGB hex strings) and motif (waves, weave, or orbit).';
   const prompt=JSON.stringify({brief,w,h,previousColors:cells.map(c=>c?.c||null)});
