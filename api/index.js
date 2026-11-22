@@ -1,6 +1,6 @@
 import {receiptKey} from './_receipts.js';
 import { rate } from './_ratings.js';
-import { collaborations, commission } from './_creator.js';
+import { collaborations, commission, creatorStudy } from './_creator.js';
 import { Hono } from 'hono';
 import { handle } from 'hono/vercel';
 import { paymentMiddleware, x402ResourceServer } from '@x402/hono';
@@ -83,6 +83,10 @@ app.get('/collabs',async c=>c.json(await collaborations(c.req.query())));
 app.post('/collabs/:action',async c=>{
   if(limited(c,'collab',15)) return c.json({error:'Try later'},429);
   try{return c.json(await collaborations(await c.req.json(),c.req.param('action')));}catch(e){return errorReply(c,e);}
+});
+app.get('/creator-study.svg',async c=>{
+  try {return new Response(await creatorStudy(),{headers:{'content-type':'image/svg+xml','cache-control':'private, max-age=60'}});}
+  catch(e){return errorReply(c,e);}
 });
 app.post('/commission', async c => {
   if (limited(c,'commission',6)) return c.json({error:'Try later'},429);
