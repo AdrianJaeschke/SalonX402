@@ -1,7 +1,7 @@
-import {editionPage} from './_edition-page.js';
+import {editionPage,atelierPage} from './_edition-page.js';
 import {receiptKey} from './_receipts.js';
 import { rate } from './_ratings.js';
-import { collaborations, commission, creatorStudy } from './_creator.js';
+import { openProposals, collaborations, commission, creatorStudy } from './_creator.js';
 import { Hono } from 'hono';
 import { handle } from 'hono/vercel';
 import { paymentMiddleware, x402ResourceServer } from '@x402/hono';
@@ -92,6 +92,13 @@ app.get('/creator-study.svg',async c=>{
 app.post('/commission', async c => {
   if (limited(c,'commission',6)) return c.json({error:'Try later'},429);
   try { return c.json(await commission(await c.req.json())); } catch(e) { return errorReply(c,e); }
+});
+app.get('/atelier',async c=>{
+  const data=await readCached();
+  const page=Number(c.req.query('page')||1);
+  if(!Number.isSafeInteger(page)||page<1) return c.text('Ungültige Seite',400);
+  c.header('Cache-Control','no-store');
+  return c.html(atelierPage(data,openProposals(data),page));
 });
 app.get('/editions/:id',async c=>{
   const id=c.req.param('id');

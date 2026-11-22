@@ -66,10 +66,16 @@ function checkReady(data,id,cells) {
   const p=data.collabs?.[id];
   if(!p || p.expires<=Date.now() || stateHash(cells)!==p.state || !p.owners.every(w=>p.approvals.includes(w))) throw new Fehler('Missing approvals, expired proposal or changed canvas',409);
 }
+export function openProposals(data,sender) {
+  return Object.values(data.collabs||{}).filter(p=>{
+    if(p.expires<=Date.now() || data.editions?.[p.id] || (sender && !p.owners.includes(sender))) return false;
+    try {return stateHash(inspect(data,p.area,p.proposer,true))===p.state;}catch(e){if(e instanceof Fehler)return false;throw e;}
+  });
+}
 export async function collaborations(input={},action='list') {
   const {id,ts,signature}=input, sender=wallet(input.wallet);
   const data=(await readFresh()).data;
-  if(action==='list') return Object.values(data.collabs||{}).filter(p=>p.expires>Date.now() && !data.editions?.[p.id] && (!sender || p.owners.includes(sender)));
+  if(action==='list') return openProposals(data,sender);
   const existing=data.collabs?.[id];
   if(action==='render'){
     if(data.editions?.[id]?.contributors) return {edition:id};
