@@ -19,7 +19,6 @@ const modules={
   './_publikum.js':'export const agentKonditionen=async()=>({atomic:10000});',
   './_kasse.js':'export const buchen=async()=>{},alarm=async()=>{};',
   './_namen.js':'export const claimName=async()=>{};',
-  '../public/formel.js':'export const compile=()=>{},toHex=()=>{};'
 };
 registerHooks({resolve(s,c,next){return c.parentURL?.includes('/api/') && Object.hasOwn(modules,s)?{url:'data:text/javascript,'+encodeURIComponent(modules[s]),shortCircuit:true}:next(s,c);}});
 const {collaborations}=await import('../api/_creator.js');
@@ -65,10 +64,15 @@ test('buyer negotiates a revision before signing specialist execution',async()=>
   let calls=0;
   globalThis.fetch=async(url,opts)=>{
     const request=JSON.parse(opts.body);
-    assert.equal(request.reasoning.effort,'high');
+
     const input=JSON.parse(request.messages[1].content);
+    if(request.reasoning.effort==='medium'){
+      assert.deepEqual(input.assigned,[0,1]);
+      return Response.json({choices:[{message:{content:JSON.stringify({layers:[{color:'rgb(1,0,0)',mask:'1'},{color:'rgb(0,0,1)',mask:'x>=0.5'}]})}}]});
+    }
+    assert.equal(request.reasoning.effort,'high');
     if(calls++)assert.equal(input.previous.title,'Estuary');
-    const layers=['Gezeiten','Weberei'].map((artist,i)=>({artist,palette:'dusk',pace:'calm',region:i?'center':'all',opacity:i ? 0.4 : 1,purpose:'Trace the seam'}));
+    const layers=['Gezeiten','Gezeiten'].map(artist=>({artist,opacity:1,purpose:'Trace the seam'}));
     return Response.json({choices:[{message:{content:JSON.stringify({title:'Estuary',intent:input.brief,question:'More contrast?',layers})}}]});
   };
   try{
@@ -82,5 +86,6 @@ test('buyer negotiates a revision before signing specialist execution',async()=>
     const done=await commission({...area,brief,ts,wallet:A,terms,signature:await alice.signMessage({message:JSON.stringify(['SalonX402/commission',network,terms,A,1,0,1,1,ts,brief])})});
     assert.equal(data.editions[done.edition].seed,revised.id);
     assert.equal(data.editions[done.edition].concept.layers.length,2);
+    assert.deepEqual(data.editions[done.edition].colors,['0000ff']);
   }finally{globalThis.fetch=original;delete process.env.CONCEPT_GATEWAY_KEY;}
 });
