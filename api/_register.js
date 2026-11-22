@@ -22,7 +22,8 @@ export const EXPLORER = MAINNET ? 'https://basescan.org' : 'https://sepolia.base
 export const NS = MAINNET ? 'base:' : '';
 export const PAY_TO = (process.env.PAY_TO || '').trim();
 export const PRICE = process.env.PIXEL_PRICE || '$0.01';
-export const FACILITATOR = process.env.FACILITATOR_URL || 'https://x402.org/facilitator';
+const previewFacilitator = process.env.VERCEL_ENV === 'preview' && NETWORK === 'eip155:84532' ? process.env.SEPOLIA_PREVIEW_FACILITATOR_URL : undefined;
+export const FACILITATOR = previewFacilitator || process.env.FACILITATOR_URL || 'https://x402.org/facilitator';
 export const KASSE_OFFEN = /^0x[0-9a-fA-F]{40}$/.test(PAY_TO);
 export const HAS_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
 export const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -106,12 +107,12 @@ async function lockedUpdate(mutate) {
   for (let t = 0; t < 60 && !ok; t++) { ok = !!(await redis.set(NS + 'reg:lock', me, { nx: true, px: 20000 })); if (!ok) await sleep(150); }
   if (!ok) throw new Error('Register busy, please retry');
   try {
-    const { data } = await readFresh();
+    const { data, etag } = await readFresh();
     if (!MAINNET) for (const n of NACHTRAG) if (!data.sales.some(s => s.x === n.x && s.y === n.y)) data.sales.push(n);
     const res = mutate(data);
     if (res && res.abort) return res;
     data.ver = (data.ver || 0) + 1;
-    await put(STATE, JSON.stringify(data), { access: 'public', addRandomSuffix: false, contentType: 'application/json', cacheControlMaxAge: 60, allowOverwrite: true });
+    await put(STATE, JSON.stringify(data), { access: 'public', addRandomSuffix: false, contentType: 'application/json', cacheControlMaxAge: 60, ...(etag ? {ifMatch:etag} : {allowOverwrite:false}) });
     await redis.set(NS + 'reg:ver', data.ver);
     cache = { data, at: Date.now() };
     return res || { ok: true };

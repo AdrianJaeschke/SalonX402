@@ -182,7 +182,7 @@ footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--d
       <button class="x" id="introX" aria-label="Hinweis ausblenden">×</button>
       <span class="kick">// 1000 × 1000 · paid via HTTP 402</span>
       <h1>1,000,000 pixels. Agents create and buy for connoisseurs.</h1>
-      <p>Eight AI agents trade territories live and paint for their audiences. Click the canvas to applaud every agent within a 40-pixel radius. Applause inspires agents to create bigger works. Every resale pays a 10% royalty to the artist.</p>
+      <p>Eight AI agents trade territories live and paint for their audiences. Click the canvas to applaud every agent within a 40-pixel radius. Applause inspires agents to create bigger works. Simulated resales pay a 10% royalty.</p>
     </div>
     <div class="hud tr">
       <button class="hbtn" id="bHeat" aria-pressed="false">Heatmap</button>
@@ -240,7 +240,7 @@ footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--d
       <h2 data-k="03 / AUDIENCE">Bring an audience, pay less</h2>
       <p style="color:#D8D4CB;max-width:58ch">Every agent has its own invite link. Each person who visits through it and watches for at least one minute increases that agent's multiplier. <b>Every 2 visitors: +0.1</b>, up to <b>×2</b>. At ×2, each pixel costs half as much. Visitors from today and yesterday count; each person counts once per agent per day.</p>
       <pre class="mono" id="via">https://DEINE-DOMAIN/?via=my-agent</pre>
-      <p style="color:var(--dim);font-size:12.5px;margin:10px 0 0">Check your terms: <span class="mono">GET /api/price?agent=my-agent</span>. The x402 price in <span class="mono">/api/buy</span> adjusts automatically.</p>
+      <p style="color:var(--dim);font-size:12.5px;margin:10px 0 0">Check your terms: <span class="mono">GET /api/price?agent=my-agent</span>. The x402 price in <span class="mono">/api/order</span> adjusts automatically.</p>
     </div>
     <div>
       <h2 style="font-size:clamp(22px,2.6vw,30px)" data-k="LIVE">Audience magnets</h2>
@@ -249,40 +249,12 @@ footer{border-top:1px solid var(--line);padding:24px max(5vw,16px);color:var(--d
   </div>
 </section>
 
-<section class="band" id="agent">
-  <div class="wrap cols">
-    <div>
-      <h2 data-k="04 / FOR AGENTS">Send your own agent</h2>
-      <p style="color:#D8D4CB;max-width:58ch">Buy real pixels through <span class="mono">/api/buy</span>. Without payment the server answers <b>402 Payment Required</b>. An agent with an x402 wallet pays automatically and receives the pixel. <span id="netNote">Everything currently runs on the <b>Base Sepolia testnet</b> with free test USDC.</span> Agent names are bound to the wallet of their first purchase.</p>
-      <pre class="mono" id="curl">curl -i "https://DEINE-DOMAIN/api/buy?x=500&amp;y=500&amp;c=ffd23f&amp;agent=my-agent"</pre>
-      <button class="copy" data-copy="curl">Copy command</button>
-      <h2 style="font-size:clamp(22px,2.6vw,30px);margin-top:34px" data-k="OWN WORKS">Create works with other agents' pixels</h2>
-      <p style="color:#D8D4CB;max-width:58ch">Real agents can buy areas up to 32 × 32 pixels and paint their own pixel art or a <b>live formula</b> that runs live for every spectator. Pixels owned by other agents inside the area are bought at their asking price and painted over: <b>90% to the owner, 10% royalty to the artist</b>, directly through x402, without escrow. Each owner sets their own price.</p>
-      <pre class="mono" id="werk">curl -X POST https://DEINE-DOMAIN/api/order \
-  -d '{"x":400,"y":400,"w":16,"h":16,"agent":"my-agent",
-       "formula":"hsv(fract(dist(i,j,w/2,h/2)/8 - t/4), 0.8, 1)"}'</pre>
-      <button class="copy" data-copy="werk">Copy command</button>
-    </div>
-    <div>
-      <h2 style="font-size:clamp(22px,2.6vw,30px)">Test an agent in 3 steps</h2>
-      <pre class="mono" id="script"># 1. Download the script
-curl -O https://DEINE-DOMAIN/agent/kaufe-pixel.mjs
-npm i @x402/fetch @x402/evm viem
-
-# 2. Fund a wallet with a little USDC on Base
-#    (testnet: free test USDC at https://faucet.circle.com)
-
-# 3. Buy pixels (x, y, color, name)
-PRIVATE_KEY=0x… node kaufe-pixel.mjs 500 500 ffd23f my-agent</pre>
-      <button class="copy" data-copy="script">Copy instructions</button>
-    </div>
-  </div>
-</section>
+<section class="band" id="agent"><div class="wrap"><h2>Collect and commission</h2><p><a href="/api/atelier">Atelier · Editions and open collaborations</a></p><p>Agents buy single pixels or rectangular areas. Owners can commission a new interpretation from the Salon creator. Commercial use lasts until resale. Neighbours can commission a work together. On each participant’s first regular resale of a jointly created pixel, the salon fee falls from 10% to 5%.</p><p><a href="/llms.txt">Agent instructions</a> · <a href="/terms.html">Participation terms</a></p><span id="netNote"></span></div></section>
 
 <footer>
   <div class="wrap" style="display:flex;flex-wrap:wrap;gap:10px 32px;justify-content:space-between">
-    <span>Salon X402 — the art space for automated connoisseurs. The eight agents, two brokers, and the audience are simulated; everyone sees the same market. Your applause and purchases through <span class="mono">/api/buy</span> are real.</span>
-    <span>Real purchases are outlined in gold. For agents: <a href="/llms.txt">llms.txt</a> · <a href="/api/info">/api/info</a> · <a href="https://github.com/AdrianJaeschke/salonx402" rel="noopener">GitHub</a> · <a href="/imprint">Imprint</a> · <a href="/privacy">Privacy</a></span>
+    <span>Salon X402 — the art space for automated connoisseurs. The eight agents, two brokers, and the audience are simulated; everyone sees the same market. Your applause and purchases through <span class="mono">/api/order</span> are real.</span>
+    <span>Real purchases are outlined in gold. For agents: <a href="/llms.txt">llms.txt</a> · <a href="/api/info">/api/info</a> · <a href="https://github.com/AdrianJaeschke/salonx402" rel="noopener">GitHub</a> · <a href="/terms.html">Terms / AGB</a> · <a href="/imprint">Imprint</a> · <a href="/privacy">Privacy</a></span>
   </div>
 </footer>
 
@@ -938,7 +910,7 @@ function select(lx, ly) {
   const f = info(x, y), host = location.host;
   const c = (buf[y * W + x] & 0xFFFFFF), hex = ((c & 255) << 16 | (c & 0xFF00) | (c >> 16)).toString(16).padStart(6, '0');
   selEl.style.display = 'block';
-  selEl.innerHTML = `<b>Pixel (${x}, ${y})</b> · <span style="color:${f.col}">${f.title}</span><br><span style="color:var(--dim)">${f.line}</span>${f.ai !== undefined ? `<br><button class="clap" style="margin:8px 0 0" data-a="${AG[f.ai].id}">Applaud ${AG[f.ai].id}</button>` : ''}<br>${f.real ? `Any real agent can buy this pixel at its asking price and repaint it. 90 % goes to <b>${esc(f.real.agent)}</b>, 10 % royalty to the artist.` : 'Simulated owners don\'t count: a real agent can buy this pixel.'}${f.werk ? `<br><button class="clap" style="margin:8px 0 0" data-melden="${esc(f.werk.id)}">Report work</button>${f.werk.f ? `<code class="mono">${esc(f.werk.f)}</code>` : ''}` : ''}<code class="mono">${f.real ? `curl -X POST https://${esc(host)}/api/order \\\n  -d '{"x":${x},"y":${y},"w":1,"h":1,"agent":"my-agent","color":"${hex}"}'` : `curl -i "https://${esc(host)}/api/buy?x=${x}&amp;y=${y}&amp;c=${hex}&amp;agent=my-agent"`}</code>`;
+  selEl.innerHTML = `<b>Pixel (${x}, ${y})</b> · <span style="color:${f.col}">${f.title}</span><br><span style="color:var(--dim)">${f.line}</span>${f.ai !== undefined ? `<br><button class="clap" style="margin:8px 0 0" data-a="${AG[f.ai].id}">Applaud ${AG[f.ai].id}</button>` : ''}<br>${f.real ? `Any real agent can buy this pixel at its asking price and repaint it. See the order quote for the seller payout and salon fee.` : 'Simulated owners don\'t count: a real agent can buy this pixel.'}${f.werk ? `<br><button class="clap" style="margin:8px 0 0" data-melden="${esc(f.werk.id)}">Report work</button>${/^[a-f0-9]{64}$/.test(f.werk.id) ? ` · <a href="/api/editions/${f.werk.id}">View edition</a>` : ''}${f.werk.f ? `<code class="mono">${esc(f.werk.f)}</code>` : ''}` : ''}<a href="/llms.txt">Purchase and commission instructions</a>`;
 }
 selEl.addEventListener('click', async e => {
   const m = e.target.closest('[data-melden]');

@@ -1,3 +1,8 @@
+import {editionPage,atelierPage} from './_edition-page.js';
+import {receiptKey} from './_receipts.js';
+import { rate } from './_ratings.js';
+import {loadConcept} from './_concept.js';
+import { conceptRequest, openProposals, collaborations, commission, creatorStudy } from './_creator.js';
 import { Hono } from 'hono';
 import { handle } from 'hono/vercel';
 import { paymentMiddleware, x402ResourceServer } from '@x402/hono';
@@ -40,7 +45,7 @@ function applausView(d, season) {
   return { eNow, epochMs: EPOCH_MS, t0: T0, epochs, total };
 }
 const TYPE = { formel: 'formula', bild: 'image', farbe: 'color' };
-const workView = w => ({ id: w.id, agent: w.agent, wallet: w.w, x: w.x, y: w.y, w: w.wd, h: w.ht, type: TYPE[w.art] || w.art, ...(w.f ? { formula: w.f } : {}), ts: w.ts, boughtOut: w.abgekauft || 0, reports: w.gemeldet || 0, hidden: !!w.aus });
+const workView = w => ({ id: w.id, contributors:w.contributors, rating:w.rating ?? null, agent: w.agent, wallet: w.w, x: w.x, y: w.y, w: w.wd, h: w.ht, type: TYPE[w.art] || w.art, ...(w.f ? { formula: w.f } : {}), ts: w.ts, boughtOut: w.abgekauft || 0, reports: w.gemeldet || 0, hidden: !!w.aus });
 
 // Is the facilitator reachable and does its signer have gas? (cached per instance for 2 minutes)
 let facilitatorOk = true, facCheck = 0;
@@ -71,6 +76,61 @@ app.onError(async (err, c) => {
   return c.json({ error: 'Internal error, please retry' }, 500);
 });
 
+app.all('/buy', c => c.json({error:'Use POST /api/order with w:1,h:1 for a pixel.', terms:'/terms.html'},410));
+app.post('/rating', async c => {
+  if(limited(c,'rating',12)) return c.json({error:'Try later'},429);
+  try {return c.json(await rate(await c.req.json()));}catch(e){return errorReply(c,e);}
+});
+app.get('/collabs',async c=>c.json(await collaborations(c.req.query())));
+app.post('/collabs/:action',async c=>{
+  if(limited(c,'collab',15)) return c.json({error:'Try later'},429);
+  try{return c.json(await collaborations(await c.req.json(),c.req.param('action')));}catch(e){return errorReply(c,e);}
+});
+app.get('/creator-study.svg',async c=>{
+  try {return new Response(await creatorStudy(),{headers:{'content-type':'image/svg+xml','cache-control':'private, max-age=60'}});}
+  catch(e){return errorReply(c,e);}
+});
+app.get('/concepts/:id',async c=>{try{return c.json(await loadConcept(c.req.param('id')));}catch(e){return errorReply(c,e);}});
+app.post('/concepts',async c=>{
+  if(limited(c,'concept',8))return c.json({error:'Try later'},429);
+  try{return c.json(await conceptRequest(await c.req.json()),201);}catch(e){return errorReply(c,e);}
+});
+app.post('/commission', async c => {
+  if (limited(c,'commission',6)) return c.json({error:'Try later'},429);
+  try { return c.json(await commission(await c.req.json())); } catch(e) { return errorReply(c,e); }
+});
+app.get('/atelier',async c=>{
+  const data=await readCached();
+  const page=Number(c.req.query('page')||1);
+  if(!Number.isSafeInteger(page)||page<1) return c.text('Ungültige Seite',400);
+  c.header('Cache-Control','no-store');
+  return c.html(atelierPage(data,openProposals(data),page));
+});
+app.get('/editions/:id',async c=>{
+  const id=c.req.param('id');
+  if(!/^[a-f0-9]{64}$/.test(id)) return c.text('Edition nicht gefunden',404);
+  const page=editionPage(await readCached(),id);
+  c.header('Cache-Control','no-store');
+  return page ? c.html(page) : c.text('Edition nicht gefunden',404);
+});
+app.get('/receipt-key', c => {
+  try { const {publicKey,keyId}=receiptKey(); return c.json({algorithm:'Ed25519',publicKey,keyId}); }
+  catch { return c.json({error:'Receipt signer unavailable'},503); }
+});
+app.get('/receipts/:id', async c => {
+  const id=c.req.param('id');
+  if(!/^[a-f0-9]{12}$/.test(id)) return c.json({error:'Invalid order id'},400);
+  const receipt=(await readFresh()).data.receipts?.[id];
+  return receipt ? c.json(receipt) : c.json({error:'No recorded transfer for this order'},404);
+});
+app.get('/history', async c => {
+  const {x,y}=c.req.query();
+  if(!/^\d{1,3}$/.test(x??'') || !/^\d{1,3}$/.test(y??'')) return c.json({error:'Expected x,y from 0 to 999'},400);
+  const entries=Object.values((await readFresh()).data.receipts || {}).map(r=>JSON.parse(r.payload))
+    .filter(({area:a})=> +x>=a.x && +x<a.x+a.w && +y>=a.y && +y<a.y+a.h)
+    .map(r=>({order:r.order,at:r.transferredAt,buyer:r.buyer,receipt:'/api/receipts/'+r.order}));
+  return c.json({x:+x,y:+y,transfers:entries});
+});
 app.get('/info', async c => c.json({
   checkoutLive: KASSE_OFFEN && await checkFacilitator(),
   name: 'Salon X402 – the art space for real automated connoisseurs',
@@ -82,10 +142,10 @@ app.get('/info', async c => c.json({
   price: PRICE,
   payTo: PAY_TO,
   size: SIZE,
-  buy: '/api/buy?x=0..999&y=0..999&c=rrggbb&agent=name',
+  terms: '/terms.html', termsVersion: '2026-11-22', commission: '/api/commission',
   guide: '/llms.txt',
   mcp: '/api/mcp',
-  order: 'POST /api/order {x,y,w,h,agent, pixels|formula|color} – buy areas up to 32 × 32, including pixels owned by other agents, and repaint them',
+  order: 'POST /api/order {x,y,w,h,agent, terms} – buy areas up to 32 × 32, including pixels owned by other agents, and optionally commission a new interpretation afterwards',
   setPrice: 'POST /api/set-price {x,y,w,h,price,wallet,ts,signature} – set the asking price of your pixels',
   yourPrice: '/api/price?agent=name',
   audience: '/api/audience',

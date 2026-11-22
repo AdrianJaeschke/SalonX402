@@ -1,6 +1,7 @@
 // Werke und Weiterverkauf: echte Agenten kaufen ganze Flächen, malen eigene Pixelbilder oder Formeln
 // und kaufen anderen Agenten deren Pixel ab. Bezahlt wird ohne Treuhand: jeder Teil geht per x402
 // direkt an seinen Empfänger (90 % an den bisherigen Besitzer, 10 % Tantieme + freie Pixel an den Salon).
+import { createReceipt, receiptKey } from './_receipts.js';
 import { getCache } from '@vercel/functions';
 import { randomBytes } from 'node:crypto';
 import { verifyMessage } from 'viem';
@@ -58,12 +59,15 @@ function farben(spec, wd, ht, x, y) {
 
 // Plant einen Auftrag: welche Pixel frei sind, wem die anderen gehören, wer wie viel bekommt
 export async function planen(spec) {
+  if (!spec || typeof spec !== 'object') throw new Fehler('JSON object required');
   const x = Number.parseInt(spec.x, 10), y = Number.parseInt(spec.y, 10);
   const wd = Number.parseInt(spec.w ?? spec.width ?? 1, 10), ht = Number.parseInt(spec.h ?? spec.height ?? 1, 10);
   if (![x, y, wd, ht].every(Number.isInteger) || x < 0 || y < 0 || wd < 1 || ht < 1 || wd > MAX_SEITE || ht > MAX_SEITE || x + wd > SIZE || y + ht > SIZE)
     throw new Fehler(`Invalid area: x, y from 0, w and h from 1 to ${MAX_SEITE}, all inside 1000 × 1000`);
   const agent = cleanAgent(spec.agent);
-  const bild = farben({ ...spec, formel: spec.formel ?? spec.formula, pixel: spec.pixel ?? spec.pixels, farbe: spec.farbe ?? spec.color }, wd, ht, x, y);
+  if (spec.terms !== '2026-11-22') throw new Fehler('Read /terms.html and supply terms: 2026-11-22', 428);
+  if (['pixels','pixel','formula','formel','c','color','farbe'].some(k => k in spec)) throw new Fehler('Use a creative brief after purchase.');
+  const bild = { art: 'handel', c: '888888'.repeat(wd * ht), terms: spec.terms };
   const d = await readCached();
   const idx = index(d), sperren = aktiveSperren(d), versteckt = new Set((d.werke || []).filter(w => w.aus).map(w => w.id));
   const frei = (await agentKonditionen(agent)).atomic;
@@ -78,9 +82,10 @@ export async function planen(spec) {
     const s = idx.get(k);
     if (!s) { add(SALON, frei); anteil.erstverkauf += frei; nFrei++; snap.push([k, 0, 0]); continue; }
     const a = ask(s), w = wallet(s.w);
-    const t = Math.round(a * TANTIEME);
+    const eligible = s.collabSale && s.wk === s.collabSale && d.editions?.[s.wk]?.contributors?.includes(w);
+    const t = Math.round(a * (eligible ? 0.05 : TANTIEME));
     if (!w || w === SALON || (s.wk && versteckt.has(s.wk))) { add(SALON, a); anteil.rueckkauf += a; } else { add(w, a - t); add(SALON, t); anteil.tantiemen += t; }
-    nAbkauf++; snap.push([k, s.w || '', a]);
+    nAbkauf++; snap.push([k, s.w || '', a, s.wk || null, s.collabSale || null, s.tenure || null]);
   }
   if (teile.size > 6) throw new Fehler('Too many different owners in this area (max. 5). Please choose a smaller area.');
   // Salon-Teil zuerst, dann die Besitzer
@@ -97,10 +102,10 @@ export function oeffentlich(o, base = '') {
   const offen = o.teile.filter(t => !t.bezahlt);
   const type = { formel: 'formula', bild: 'image', farbe: 'color' }[o.art] || o.art;
   return {
-    order: o.id, agent: o.agent, area: { x: o.x, y: o.y, w: o.wd, h: o.ht }, type, ...(o.f ? { formula: o.f } : {}),
-    freePixels: o.nFrei, boughtPixels: o.nAbkauf, deadline: new Date(o.frist).toISOString(),
+    order: o.id, ...(o.receipt ? {receipt:base+o.receipt} : {}), agent: o.agent, area: { x: o.x, y: o.y, w: o.wd, h: o.ht }, type, ...(o.f ? { formula: o.f } : {}),
+    salonRoyaltyMicroUSDC:o.teile.find(t=>t.salon)?.anteil?.tantiemen || 0, freePixels: o.nFrei, boughtPixels: o.nAbkauf, deadline: new Date(o.frist).toISOString(),
     total: usdc(o.teile.reduce((a, t) => a + t.betrag, 0)) + ' USDC',
-    parts: o.teile.map(t => ({ part: t.nr, to: t.salon ? 'salon (free pixels + 10 % royalty)' : t.an, amount: usdc(t.betrag) + ' USDC', paid: t.bezahlt, ...(t.tx ? { tx: t.tx } : {}), ...(!t.bezahlt ? { pay: `${base}/api/order/pay?id=${o.id}&part=${t.nr}` } : {}) })),
+    parts: o.teile.map(t => ({ part: t.nr, to: t.salon ? 'salon (free pixels and quoted resale fees)' : t.an, amount: usdc(t.betrag) + ' USDC', paid: t.bezahlt, ...(t.tx ? { tx: t.tx } : {}), ...(!t.bezahlt ? { pay: `${base}/api/order/pay?id=${o.id}&part=${t.nr}` } : {}) })),
     status: o.fertig ? 'complete' : offen.length === o.teile.length ? 'open' : 'partially paid',
     note: o.fertig ? 'The work hangs on the canvas.' : 'Pay every open part via x402 (GET its pay URL). The area is yours once all parts are paid. Unpaid orders expire at the deadline; parts already paid stay with their recipients.'
   };
@@ -123,9 +128,16 @@ export async function laden(id, frisch) {
 }
 
 // Vor einer Zahlung: ist der Auftrag noch gültig, hat sich an den Pixeln nichts geändert?
+function artworkChanged(entry, sale) {
+  return entry.length >= 6 && (entry[3] !== (sale.wk || null) || entry[4] !== (sale.collabSale || null) || entry[5] !== (sale.tenure || null));
+}
+
 export async function pruefen(id, nr, frisch) {
   const o = await laden(id, frisch);
   if (!o) throw new Fehler('Order not found or expired. Create a new one: POST /api/order', 404);
+  if (o.art === 'handel') {
+    try { receiptKey(); } catch { throw new Fehler('Checkout unavailable: receipt signing is not configured',503); }
+  }
   if (o.fertig) throw new Fehler('Order is already complete', 409);
   if (o.frist < Date.now()) throw new Fehler('Deadline passed. Create a new order.', 410);
   const t = o.teile.find(t => t.nr === Number(nr));
@@ -133,11 +145,12 @@ export async function pruefen(id, nr, frisch) {
   if (t.bezahlt) throw new Fehler('This part is already paid', 409);
   const d = frisch ? (await readFresh()).data : await readCached();
   const idx = index(d), sperren = aktiveSperren(d, o.id);
-  for (const [k, w, a] of o.snap) {
+  for (const entry of o.snap) {
+    const [k, w, a] = entry;
     if (sperren.has(k)) throw new Fehler('A pixel is now locked by another order', 409);
     const s = idx.get(k);
     if (!w && !a) { if (s) throw new Fehler(`Pixel (${k % SIZE}, ${Math.floor(k / SIZE)}) has been sold meanwhile. Create a new order.`, 409); continue; }
-    if (!s || (s.w || '') !== w || ask(s) !== a) throw new Fehler(`Owner or price of pixel (${k % SIZE}, ${Math.floor(k / SIZE)}) has changed. Create a new order.`, 409);
+    if (!s || (s.w || '') !== w || ask(s) !== a || artworkChanged(entry,s)) throw new Fehler(`Owner or price of pixel (${k % SIZE}, ${Math.floor(k / SIZE)}) has changed. Create a new order.`, 409);
   }
   return { o, t };
 }
@@ -149,7 +162,7 @@ export async function verbuchen(id, nr, payer, tx) {
     try { await buchen({ ...(r.teil.anteil || { erstverkauf: r.teil.betrag }), agent: r.o.agent, tx, art: 'werk' }); } catch (e) { console.error('Kassenbuch', e?.message); }
   }
   if (r && r.fertig) await claimName(r.o.agent, payer);
-  if (r && r.abort) await alarm('order payment could not be booked', { order: id, part: nr, tx, reason: r.grund });
+  if (r && r.abort && !r.duplicate) await alarm('order payment could not be booked', { order: id, part: nr, tx, reason: r.grund });
   return r;
 }
 async function verbuchenIntern(id, nr, payer, tx) {
@@ -159,6 +172,7 @@ async function verbuchenIntern(id, nr, payer, tx) {
     const now = Date.now();
     for (const [k, o] of Object.entries(d.auftraege)) if (o.frist < now - 3600_000) delete d.auftraege[k];
     for (const [k, o] of Object.entries(d.fertig)) if (o.erstellt < now - 86400_000) delete d.fertig[k];
+    if (d.receipts?.[id]) return {abort:true,duplicate:true};
     const o = d.auftraege[id] || (vorlage && !vorlage.fertig ? structuredClone(vorlage) : null);
     if (!o) { console.error('Zahlung ohne Auftrag', id, nr, tx); return { abort: true, grund: 'auftrag fehlt' }; }
     const t = o.teile.find(t => t.nr === Number(nr));
@@ -168,16 +182,34 @@ async function verbuchenIntern(id, nr, payer, tx) {
     // Übergabe
     const kauf = wallet(payer) || o.teile.find(t => t.von)?.von || '';
     const fl = new Set(); for (let j = 0; j < o.ht; j++) for (let i = 0; i < o.wd; i++) fl.add((o.y + j) * SIZE + o.x + i);
+    const previous = new Map(d.sales.map(s => [s.y * SIZE + s.x, s]));
+    if (o.art === 'handel') {
+      if (!kauf || o.teile.some(part=>!part.von || !part.tx)) return {abort:true,grund:'missing settlement evidence'};
+      for(const entry of o.snap) {
+        const [position,expectedWallet,expectedPrice] = entry;
+        const old=previous.get(position);
+        if (old ? (old.w || '') !== (expectedWallet || '') || ask(old)!==expectedPrice || artworkChanged(entry,old) : !!expectedWallet || !!expectedPrice)
+          return {abort:true,grund:'ownership or price changed during settlement'};
+      }
+      d.receipts ||= {};
+      d.receipts[id] = createReceipt(o,previous,kauf,now);
+      o.receipt = '/api/receipts/'+id;
+    }
     const alt = new Map(o.snap.map(([k, w, a]) => [k, a]));
     d.sales = d.sales.filter(s => !fl.has(s.y * SIZE + s.x));
     let n = 0;
     for (let j = 0; j < o.ht; j++) for (let i = 0; i < o.wd; i++, n++) {
       const k = (o.y + j) * SIZE + o.x + i, a = alt.get(k);
       const lp = a || o.frei || 10000;
+      if (o.art === 'handel') {
+        const prior = previous.get(k);
+        d.sales.push({ ...prior, collabSale:null, x:o.x+i, y:o.y+j, c:prior?.c || '888888', w:kauf, lp, p:0, tx:tx || '', ts:now, agent:o.agent, tenure:o.id, terms:o.terms });
+        continue;
+      }
       d.sales.push({ x: o.x + i, y: o.y + j, c: o.c.slice(n * 6, n * 6 + 6), agent: o.agent, tx: tx || '', ts: now, w: kauf, lp, wk: o.id });
     }
     d.werke = d.werke.filter(w => d.sales.some(s => s.wk === w.id) || w.id === o.id);
-    d.werke.push({ id: o.id, agent: o.agent, w: kauf, x: o.x, y: o.y, wd: o.wd, ht: o.ht, art: o.art, ...(o.f ? { f: o.f } : {}), ts: now, abgekauft: o.nAbkauf, gemeldet: 0 });
+    if (o.art !== 'handel') d.werke.push({ id: o.id, agent: o.agent, w: kauf, x: o.x, y: o.y, wd: o.wd, ht: o.ht, art: o.art, ...(o.f ? { f: o.f } : {}), ts: now, abgekauft: o.nAbkauf, gemeldet: 0 });
     o.fertig = true; delete d.auftraege[id]; d.fertig[id] = { ...o, snap: [] };
     return { ok: true, fertig: true, o, teil: t };
   });
@@ -210,8 +242,9 @@ export async function adminSetzen(b) {
   if (!(Math.abs(Date.now() - ts) < 600_000)) throw new Fehler('Signature too old');
   const ok = SALON && await verifyMessage({ address: SALON, message: adminNachricht(werk, aus, ts), signature: b.signature || b.signatur }).catch(() => false);
   if (!ok) throw new Fehler('Only the salon wallet may do this', 401);
-  return update(d => { const w = (d.werke || []).find(w => w.id === werk); if (!w) return { abort: true, error: 'Work not found' }; w.aus = aus; return { ok: true, work: werk, hidden: aus }; });
+  return update(d => { const w = (d.werke || []).find(w => w.id === werk); if (!w) return { abort: true, error: 'Work not found' }; w.aus = aus; if(d.editions?.[werk]) d.editions[werk].hidden=aus; return { ok: true, work: werk, hidden: aus }; });
 }
 export async function melden(ids) {
   return update(d => { for (const [id, n] of ids) { const w = (d.werke || []).find(w => w.id === id); if (w) w.gemeldet = (w.gemeldet || 0) + n; } });
 }
+
