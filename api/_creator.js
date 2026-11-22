@@ -115,7 +115,12 @@ async function generateArtwork(brief,w,h,cells) {
   const request=endpoint ? {model,stream:false,format:'json',system,prompt} :
     {model,max_tokens:180,response_format:{type:'json_object'},messages:[{role:'system',content:system},{role:'user',content:prompt}]};
   const response=await fetch(endpoint || 'https://ai-gateway.vercel.sh/v1/chat/completions',{method:'POST',signal:AbortSignal.timeout(40000),headers:{'content-type':'application/json',...(token?{authorization:'Bearer '+token}:{})},body:JSON.stringify(request)});
-  if(!response.ok) throw new Fehler('Creator provider returned HTTP '+response.status,503);
+  if(!response.ok) {
+    const failure=await response.json().catch(()=>({}));
+    const code=String(failure?.error?.code || failure?.error?.type || '');
+    const reason=/^[a-zA-Z0-9_-]{1,64}$/.test(code) ? ' ('+code+')' : '';
+    throw new Fehler('Creator provider returned HTTP '+response.status+reason,503);
+  }
   let art;
   try {const result=await response.json();art=JSON.parse(endpoint ? result.response : result.choices[0].message.content);}catch{throw new Fehler('Creator returned invalid art',502);}
   if(!Array.isArray(art?.colors)||art.colors.length!==4||!art.colors.every(c=>typeof c==='string'&&/^[a-f0-9]{6}$/i.test(c))||!['waves','weave','orbit'].includes(art.motif))throw new Fehler('Creator returned invalid palette or motif',502);
@@ -129,7 +134,7 @@ export async function creatorStudy() {
   const key=NS+'creator-study:'+process.env.VERCEL_URL;
   const cached=await redis.get(key);
   if(cached) return cached;
-  if(!await redis.set(key+':attempt',1,{nx:true,ex:86400})) throw new Fehler('Study generation pending or already attempted today',429);
+  if(!await redis.set(key+':attempt',1,{nx:true,ex:300})) throw new Fehler('Study generation pending; retry in five minutes',429);
   const size=24, brief='Two tidal currents meet at dusk. Let a warm current pass through the cold water.';
   const {colors,model}=await generateArtwork(brief,size,size,Array(size*size).fill(null));
   const rects=colors.map((color,i)=>'<rect x="'+i%size+'" y="'+Math.floor(i/size)+'" width="1" height="1" fill="#'+color+'"/>').join('');
