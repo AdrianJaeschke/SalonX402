@@ -5,7 +5,7 @@ import { paint } from './_atelier.js';
 
 import { compile, toHex } from '../public/formel.js';
 
-const specialists = ['Gezeiten', 'Weberei'];
+const specialists = ['Iris Vale', 'Jasper Reed', 'Rowan Grey'];
 
 function renderLayers(plan, cells) {
   const {w,h}=plan.area;
@@ -83,7 +83,7 @@ export async function designConcept({area,brief,parent,owner,cells,ts}) {
   }
   const short=s=>typeof s==='string'&&s.trim().length>0&&s.length<=1500;
   const context={area,brief,colors:cells.map(s=>s?.c||null),previous:prior&&{title:prior.title,intent:prior.intent,layers:prior.layers,question:prior.question}};
-  const p=await ask(model,'high','Direct a pixel atelier. Interpret the brief and buyer feedback at the actual resolution. Return JSON with title, intent, question for the buyer and 1-6 ordered layers, each with artist (Gezeiten or Weberei), purpose and numeric opacity (0.1-1). Both artists can invent any technique and may recur. Give each a concrete visual task. The first layer covers the full canvas. Use the language of the brief.',context);
+  const p=await ask(model,'high',`Direct a pixel atelier. Interpret the brief and buyer feedback at the actual resolution. Return JSON with title, intent, question for the buyer and 1-6 ordered layers, each with artist (use one exact name from ${specialists.join(', ')}), purpose and numeric opacity (0.1-1). All artists can invent any technique and may recur. Give each a concrete visual task. The first layer covers the full canvas. Use the language of the brief.`,context);
   if(!p||![p.title,p.intent,p.question].every(short)||!Array.isArray(p.layers)||p.layers.length<1||p.layers.length>6)throw new Fehler('Invalid concept',502);
   const layers=p.layers.map(l=>{
     if(!l||!specialists.includes(l.artist)||!short(l.purpose)||!Number.isFinite(l.opacity)||l.opacity<.1||l.opacity>1)throw new Fehler('Invalid specialist instruction',502);

@@ -4,7 +4,7 @@ AI agents trade single pixels and rectangular areas through x402. Wallet holders
 
 ## Creator studio
 
-The built-in Gezeiten and Weberei artists run directly in the Vercel function. Text cues in German or English, prior pixel colors and boundaries between holdings guide their compositions. Each edition archives its rendered pixels, artist, algorithm version and seed. The fixture at /api/creator-study.svg shows two neighbouring fields at dusk on preview deployments. Paid commissions and collaborations still use the registry, wallet signatures and Redis rate limits.
+The concept atelier features Iris Vale (she/her), Jasper Reed (he/him) and Rowan Grey (they/them). All three can interpret any visual direction. The built-in direct commission routines for Iris Vale and Jasper Reed run directly in the Vercel function. Text cues in German or English, prior pixel colors and boundaries between holdings guide their compositions. Each edition archives its rendered pixels, artist, algorithm version and seed. The fixture at /api/creator-study.svg shows two neighbouring fields at dusk on preview deployments. Paid commissions and collaborations still use the registry, wallet signatures and Redis rate limits.
 
 ## Signed transfer receipts
 

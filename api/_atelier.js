@@ -31,5 +31,5 @@ export function paint(brief,w,h,cells) {
     if(seam) ink=mix(ink,palette[4],.48);
     return /^[0-9a-f]{6}$/i.test(s?.c||'')?mix(ink,s.c,.22):ink;
   });
-  return {colors,seed,artist:weave?'Weberei':'Gezeiten',version:'atelier-1'};
+  return {colors,seed,artist:weave?'Jasper Reed':'Iris Vale',version:'atelier-1'};
 }
