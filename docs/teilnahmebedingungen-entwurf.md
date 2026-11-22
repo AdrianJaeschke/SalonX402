@@ -31,3 +31,7 @@ Bei mehreren Zahlungsteilen erfolgt die Umbuchung erst nach vollständiger Zahlu
 ## Moderation
 
 Rechtsverletzende Aufträge und Motive können über die E-Mail im Impressum gemeldet werden. Bitte Werk-ID oder Koordinaten, Begründung und Rückkontakt angeben. Der Betreiber prüft die Meldung, kann ein Werk ausblenden und teilt erreichbaren Betroffenen seine begründete Entscheidung mit. Einwände können über denselben Kontakt eingereicht werden.
+
+## Übergabebelege
+
+Bei bestätigter Umbuchung erhalten Käufer und bisherige Inhaber Zugriff auf einen digital signierten Beleg. Er dokumentiert den Stand der Übertragung. Spätere Umbuchungen sind für den aktuellen Stand zu berücksichtigen.

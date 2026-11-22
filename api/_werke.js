@@ -1,6 +1,7 @@
 // Werke und Weiterverkauf: echte Agenten kaufen ganze Flächen, malen eigene Pixelbilder oder Formeln
 // und kaufen anderen Agenten deren Pixel ab. Bezahlt wird ohne Treuhand: jeder Teil geht per x402
 // direkt an seinen Empfänger (90 % an den bisherigen Besitzer, 10 % Tantieme + freie Pixel an den Salon).
+import { createReceipt, receiptKey } from './_receipts.js';
 import { getCache } from '@vercel/functions';
 import { randomBytes } from 'node:crypto';
 import { verifyMessage } from 'viem';
@@ -100,7 +101,7 @@ export function oeffentlich(o, base = '') {
   const offen = o.teile.filter(t => !t.bezahlt);
   const type = { formel: 'formula', bild: 'image', farbe: 'color' }[o.art] || o.art;
   return {
-    order: o.id, agent: o.agent, area: { x: o.x, y: o.y, w: o.wd, h: o.ht }, type, ...(o.f ? { formula: o.f } : {}),
+    order: o.id, ...(o.receipt ? {receipt:base+o.receipt} : {}), agent: o.agent, area: { x: o.x, y: o.y, w: o.wd, h: o.ht }, type, ...(o.f ? { formula: o.f } : {}),
     freePixels: o.nFrei, boughtPixels: o.nAbkauf, deadline: new Date(o.frist).toISOString(),
     total: usdc(o.teile.reduce((a, t) => a + t.betrag, 0)) + ' USDC',
     parts: o.teile.map(t => ({ part: t.nr, to: t.salon ? 'salon (free pixels + 10 % royalty)' : t.an, amount: usdc(t.betrag) + ' USDC', paid: t.bezahlt, ...(t.tx ? { tx: t.tx } : {}), ...(!t.bezahlt ? { pay: `${base}/api/order/pay?id=${o.id}&part=${t.nr}` } : {}) })),
@@ -129,6 +130,9 @@ export async function laden(id, frisch) {
 export async function pruefen(id, nr, frisch) {
   const o = await laden(id, frisch);
   if (!o) throw new Fehler('Order not found or expired. Create a new one: POST /api/order', 404);
+  if (o.art === 'handel') {
+    try { receiptKey(); } catch { throw new Fehler('Checkout unavailable: receipt signing is not configured',503); }
+  }
   if (o.fertig) throw new Fehler('Order is already complete', 409);
   if (o.frist < Date.now()) throw new Fehler('Deadline passed. Create a new order.', 410);
   const t = o.teile.find(t => t.nr === Number(nr));
@@ -152,7 +156,7 @@ export async function verbuchen(id, nr, payer, tx) {
     try { await buchen({ ...(r.teil.anteil || { erstverkauf: r.teil.betrag }), agent: r.o.agent, tx, art: 'werk' }); } catch (e) { console.error('Kassenbuch', e?.message); }
   }
   if (r && r.fertig) await claimName(r.o.agent, payer);
-  if (r && r.abort) await alarm('order payment could not be booked', { order: id, part: nr, tx, reason: r.grund });
+  if (r && r.abort && !r.duplicate) await alarm('order payment could not be booked', { order: id, part: nr, tx, reason: r.grund });
   return r;
 }
 async function verbuchenIntern(id, nr, payer, tx) {
@@ -162,6 +166,7 @@ async function verbuchenIntern(id, nr, payer, tx) {
     const now = Date.now();
     for (const [k, o] of Object.entries(d.auftraege)) if (o.frist < now - 3600_000) delete d.auftraege[k];
     for (const [k, o] of Object.entries(d.fertig)) if (o.erstellt < now - 86400_000) delete d.fertig[k];
+    if (d.receipts?.[id]) return {abort:true,duplicate:true};
     const o = d.auftraege[id] || (vorlage && !vorlage.fertig ? structuredClone(vorlage) : null);
     if (!o) { console.error('Zahlung ohne Auftrag', id, nr, tx); return { abort: true, grund: 'auftrag fehlt' }; }
     const t = o.teile.find(t => t.nr === Number(nr));
@@ -172,6 +177,17 @@ async function verbuchenIntern(id, nr, payer, tx) {
     const kauf = wallet(payer) || o.teile.find(t => t.von)?.von || '';
     const fl = new Set(); for (let j = 0; j < o.ht; j++) for (let i = 0; i < o.wd; i++) fl.add((o.y + j) * SIZE + o.x + i);
     const previous = new Map(d.sales.map(s => [s.y * SIZE + s.x, s]));
+    if (o.art === 'handel') {
+      if (!kauf || o.teile.some(part=>!part.von || !part.tx)) return {abort:true,grund:'missing settlement evidence'};
+      for(const [position,expectedWallet,expectedPrice] of o.snap) {
+        const old=previous.get(position);
+        if (old ? (old.w || '') !== (expectedWallet || '') || ask(old)!==expectedPrice : !!expectedWallet || !!expectedPrice)
+          return {abort:true,grund:'ownership or price changed during settlement'};
+      }
+      d.receipts ||= {};
+      d.receipts[id] = createReceipt(o,previous,kauf,now);
+      o.receipt = '/api/receipts/'+id;
+    }
     const alt = new Map(o.snap.map(([k, w, a]) => [k, a]));
     d.sales = d.sales.filter(s => !fl.has(s.y * SIZE + s.x));
     let n = 0;

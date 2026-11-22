@@ -106,12 +106,12 @@ async function lockedUpdate(mutate) {
   for (let t = 0; t < 60 && !ok; t++) { ok = !!(await redis.set(NS + 'reg:lock', me, { nx: true, px: 20000 })); if (!ok) await sleep(150); }
   if (!ok) throw new Error('Register busy, please retry');
   try {
-    const { data } = await readFresh();
+    const { data, etag } = await readFresh();
     if (!MAINNET) for (const n of NACHTRAG) if (!data.sales.some(s => s.x === n.x && s.y === n.y)) data.sales.push(n);
     const res = mutate(data);
     if (res && res.abort) return res;
     data.ver = (data.ver || 0) + 1;
-    await put(STATE, JSON.stringify(data), { access: 'public', addRandomSuffix: false, contentType: 'application/json', cacheControlMaxAge: 60, allowOverwrite: true });
+    await put(STATE, JSON.stringify(data), { access: 'public', addRandomSuffix: false, contentType: 'application/json', cacheControlMaxAge: 60, ...(etag ? {ifMatch:etag} : {allowOverwrite:false}) });
     await redis.set(NS + 'reg:ver', data.ver);
     cache = { data, at: Date.now() };
     return res || { ok: true };

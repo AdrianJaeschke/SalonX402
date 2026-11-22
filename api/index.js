@@ -1,3 +1,4 @@
+import {receiptKey} from './_receipts.js';
 import { rate } from './_ratings.js';
 import { commission } from './_creator.js';
 import { Hono } from 'hono';
@@ -81,6 +82,24 @@ app.post('/rating', async c => {
 app.post('/commission', async c => {
   if (limited(c,'commission',6)) return c.json({error:'Try later'},429);
   try { return c.json(await commission(await c.req.json())); } catch(e) { return errorReply(c,e); }
+});
+app.get('/receipt-key', c => {
+  try { const {publicKey,keyId}=receiptKey(); return c.json({algorithm:'Ed25519',publicKey,keyId}); }
+  catch { return c.json({error:'Receipt signer unavailable'},503); }
+});
+app.get('/receipts/:id', async c => {
+  const id=c.req.param('id');
+  if(!/^[a-f0-9]{12}$/.test(id)) return c.json({error:'Invalid order id'},400);
+  const receipt=(await readFresh()).data.receipts?.[id];
+  return receipt ? c.json(receipt) : c.json({error:'No recorded transfer for this order'},404);
+});
+app.get('/history', async c => {
+  const {x,y}=c.req.query();
+  if(!/^\d{1,3}$/.test(x??'') || !/^\d{1,3}$/.test(y??'')) return c.json({error:'Expected x,y from 0 to 999'},400);
+  const entries=Object.values((await readFresh()).data.receipts || {}).map(r=>JSON.parse(r.payload))
+    .filter(({area:a})=> +x>=a.x && +x<a.x+a.w && +y>=a.y && +y<a.y+a.h)
+    .map(r=>({order:r.order,at:r.transferredAt,buyer:r.buyer,receipt:'/api/receipts/'+r.order}));
+  return c.json({x:+x,y:+y,transfers:entries});
 });
 app.get('/info', async c => c.json({
   checkoutLive: KASSE_OFFEN && await checkFacilitator(),
