@@ -1,5 +1,4 @@
-import {AsyncLocalStorage} from 'node:async_hooks';
-export const creatorAuth = new AsyncLocalStorage();
+import {paint} from './_atelier.js';
 import { createHash } from 'node:crypto';
 import { verifyMessage } from 'viem';
 import { parseCreativeBrief } from './_briefing.js';
@@ -41,7 +40,7 @@ async function interpret(id,area,owner,brief,joint=false) {
   if(joint) checkReady(data,id,cells);
   if(!redis) throw new Fehler('Creator storage unavailable',503);
   if(!await redis.set(NS+'creator:'+owner,id,{nx:true,ex:60})) throw new Fehler('One interpretation per wallet per minute',429);
-  const {colors,model}=await generateArtwork(brief,w,h,cells);
+  const {colors,artist,version:artistVersion,seed}=paint(brief,w,h,cells);
   return update(d=>{
     if(d.editions?.[id])return {abort:true,edition:id};
     const current=inspect(d,area,owner,joint);
@@ -50,7 +49,7 @@ async function interpret(id,area,owner,brief,joint=false) {
     const now=Date.now();
     d.editions||={};
     const contributors=joint ? d.collabs[id].owners : undefined;
-    d.editions[id]={contributors,...area,colors,creator:model,ts:now,terms:version,previous:current.map(s=>s?.wk||null)};
+    d.editions[id]={contributors,...area,colors,creator:artist,artistVersion,seed,ts:now,terms:version,previous:current.map(s=>s?.wk||null)};
     current.forEach((s,k)=>{
       if(!s){s={x:x+k%w,y:y+Math.floor(k/w),agent:'salon',w:owner,ts:now,lp:10000};d.sales.push(s);}
       s.collabSale = joint ? id : null;
@@ -105,40 +104,11 @@ export async function collaborations(input={},action='list') {
   });
 }
 
-async function generateArtwork(brief,w,h,cells) {
-  const endpoint=process.env.CREATOR_GENERATE_URL;
-  const model=process.env.CREATOR_MODEL || (endpoint ? null : 'openai/gpt-4.1-mini');
-  const token=endpoint ? process.env.CREATOR_TOKEN : (process.env.AI_GATEWAY_API_KEY || creatorAuth.getStore() || process.env.VERCEL_OIDC_TOKEN);
-  if(!model || (!endpoint && !token)) throw new Fehler('Creator credentials or model unavailable',503);
-  const system='You are the Salon pixel artist. Interpret the brief against the previous composition. Return JSON with colors (four 6-digit RGB hex strings) and motif (waves, weave, or orbit).';
-  const prompt=JSON.stringify({brief,w,h,previousColors:cells.map(c=>c?.c||null)});
-  const request=endpoint ? {model,stream:false,format:'json',system,prompt} :
-    {model,max_tokens:180,response_format:{type:'json_object'},messages:[{role:'system',content:system},{role:'user',content:prompt}]};
-  const response=await fetch(endpoint || 'https://ai-gateway.vercel.sh/v1/chat/completions',{method:'POST',signal:AbortSignal.timeout(40000),headers:{'content-type':'application/json',...(token?{authorization:'Bearer '+token}:{})},body:JSON.stringify(request)});
-  if(!response.ok) {
-    const failure=await response.json().catch(()=>({}));
-    const code=String(failure?.error?.code || failure?.error?.type || '');
-    const reason=/^[a-zA-Z0-9_-]{1,64}$/.test(code) ? ' ('+code+')' : '';
-    throw new Fehler('Creator provider returned HTTP '+response.status+reason,503);
-  }
-  let art;
-  try {const result=await response.json();art=JSON.parse(endpoint ? result.response : result.choices[0].message.content);}catch{throw new Fehler('Creator returned invalid art',502);}
-  if(!Array.isArray(art?.colors)||art.colors.length!==4||!art.colors.every(c=>typeof c==='string'&&/^[a-f0-9]{6}$/i.test(c))||!['waves','weave','orbit'].includes(art.motif))throw new Fehler('Creator returned invalid palette or motif',502);
-  const colors=cells.map((_,k)=>{const i=k%w,j=Math.floor(k/w);const n=art.motif==='weave'?i+2*j:art.motif==='waves'?j+2*Math.sin(i/3):Math.hypot(i-w/2,j-h/2);return art.colors[(Math.floor(n)%4+4)%4].toLowerCase();});
-  return {colors,model};
-}
-
-// One fixed study per deployment. Only enabled on preview and never touches ownership.
-export async function creatorStudy() {
-  if(process.env.VERCEL_ENV!=='preview' || !redis) throw new Fehler('Preview study unavailable',404);
-  const key=NS+'creator-study:'+process.env.VERCEL_URL;
-  const cached=await redis.get(key);
-  if(cached) return cached;
-  if(!await redis.set(key+':attempt',1,{nx:true,ex:300})) throw new Fehler('Study generation pending; retry in five minutes',429);
-  const size=24, brief='Two tidal currents meet at dusk. Let a warm current pass through the cold water.';
-  const {colors,model}=await generateArtwork(brief,size,size,Array(size*size).fill(null));
+export function creatorStudy() {
+  if(process.env.VERCEL_ENV!=='preview') throw new Fehler('Preview study unavailable',404);
+  const size=24,brief='Two tidal currents meet at dusk. Let a warm current pass through the cold water.';
+  const cells=Array.from({length:size*size},(_,k)=>k%size<size/2?{w:'west',c:'234e69'}:{w:'east',c:'de9f78'});
+  const {colors}=paint(brief,size,size,cells);
   const rects=colors.map((color,i)=>'<rect x="'+i%size+'" y="'+Math.floor(i/size)+'" width="1" height="1" fill="#'+color+'"/>').join('');
-  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="480" height="480" viewBox="0 0 24 24" shape-rendering="crispEdges"><title>Tidal currents at dusk</title>'+rects+'</svg>';
-  await redis.set(key,svg);
-  return svg;
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="480" viewBox="0 0 24 24" shape-rendering="crispEdges"><title>Gezeiten – Begegnung in der Abenddämmerung</title>'+rects+'</svg>';
 }

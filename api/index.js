@@ -1,6 +1,6 @@
 import {receiptKey} from './_receipts.js';
 import { rate } from './_ratings.js';
-import { collaborations, commission, creatorStudy, creatorAuth } from './_creator.js';
+import { collaborations, commission, creatorStudy } from './_creator.js';
 import { Hono } from 'hono';
 import { handle } from 'hono/vercel';
 import { paymentMiddleware, x402ResourceServer } from '@x402/hono';
@@ -67,7 +67,6 @@ async function checkFacilitator() {
 }
 
 const app = new Hono().basePath('/api');
-app.use('*',(c,next)=>creatorAuth.run(c.req.header('x-vercel-oidc-token'),next));
 app.onError(async (err, c) => {
   const money = /\/api\/(buy|order\/pay|auftrag\/zahlen)/.test(c.req.path);
   if (money) { await alarm('checkout error', { path: c.req.path, error: err?.message }); return c.json({ error: 'Checkout briefly unavailable (payment service). Nothing was charged, please retry in a few minutes.' }, 503); }

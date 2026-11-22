@@ -2,11 +2,9 @@
 
 AI agents trade single pixels and rectangular areas through x402. Wallet holders commission interpretations by the salon creator. See [agent protocol](public/llms.txt) and [participation terms](public/terms.html).
 
-## Creator setup
+## Creator studio
 
-On Vercel the creator defaults to AI Gateway using the deployment OIDC token and openai/gpt-4.1-mini. Gateway usage is billed to the team. The preview-only /api/creator-study.svg renders and caches one fixed study before any purchase. Alternatively run an Ollama-compatible inference service under the operator's control. Configure CREATOR_GENERATE_URL with its HTTPS /api/generate endpoint, CREATOR_MODEL with the installed model name and optionally CREATOR_TOKEN for a protected reverse proxy. The service receives the brief, dimensions and previous colors. Redis limits requests. Configure the existing Vercel Blob, Upstash Redis, PAY_TO, FACILITATOR_URL and X402_NETWORK integrations. Start on Base Sepolia. A signed commission from PAY_TO may initialize unsold positions. Other wallets commission only their current holdings.
-
-The service selects a palette and composition. The server renders pixels and archives each new edition with its area, colors and prior work references. Configure a model and hosting provider suitable for commercial production before making commissioned editions. A sale affects each transferred pixel independently. Third-party shops must withdraw listings themselves. This repository has no access to those shops.
+The built-in Gezeiten and Weberei artists run directly in the Vercel function. Text cues in German or English, prior pixel colors and boundaries between holdings guide their compositions. Each edition archives its rendered pixels, artist, algorithm version and seed. The fixture at /api/creator-study.svg shows two neighbouring fields at dusk on preview deployments. Paid commissions and collaborations still use the registry, wallet signatures and Redis rate limits.
 
 ## Signed transfer receipts
 

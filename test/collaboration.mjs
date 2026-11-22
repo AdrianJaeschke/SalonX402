@@ -28,11 +28,7 @@ const {planen,speichern,pruefen,verbuchen}=await import('../api/_werke.js');
 test('joint edition, stale quotes, partial payments, transfer receipt and per-pixel fees',async()=>{
   const keys=generateKeyPairSync('ed25519');
   process.env.RECEIPT_PRIVATE_KEY=keys.privateKey.export({type:'pkcs8',format:'pem'});
-  process.env.CREATOR_GENERATE_URL='https://fixture.invalid/generate';
-  process.env.CREATOR_MODEL='fixture';
-  const originalFetch=globalThis.fetch;
-  globalThis.fetch=async()=>Response.json({response:JSON.stringify({colors:['ff0011','111111','225533','bbccee'],motif:'weave'})});
-  try{
+  {
     const quote=async x=>planen({x,y:0,w:1,h:1,agent:'buyer',terms});
     const stale=await quote(0);await speichern(stale);
     const ts=Date.now(), brief='A red thread connecting both fields';
@@ -44,6 +40,8 @@ test('joint edition, stale quotes, partial payments, transfer receipt and per-pi
     await assert.rejects(collaborations({id,wallet:B,ts,signature:await sign(alice,approval)},'approve'),/signature/);
     await collaborations({id,wallet:B,ts,signature:await sign(bob,approval)},'approve');
     assert.equal((await collaborations({id},'render')).edition,id);
+    assert.equal(data.editions[id].creator,'Weberei');
+    assert.equal(data.editions[id].colors.length,3);
     await assert.rejects(pruefen(stale.id,1,true),/changed/);
     const sale=await quote(0);await speichern(sale);
     assert.deepEqual(sale.teile.map(t=>[t.an,t.betrag]),[[salon,50000],[A,950000]]);
@@ -57,5 +55,5 @@ test('joint edition, stale quotes, partial payments, transfer receipt and per-pi
     assert.equal(JSON.parse(receipt.payload).buyer,B);
     assert.equal(JSON.parse(receipt.payload).pixels[0].previousWallet,A);
     for(const [x,fee] of [[0,100000],[1,50000],[2,50000]])assert.equal((await quote(x)).teile[0].anteil.tantiemen,fee*(x===0?2:1));
-  } finally {globalThis.fetch=originalFetch;}
+  }
 });
