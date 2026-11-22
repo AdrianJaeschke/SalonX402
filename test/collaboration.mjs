@@ -39,7 +39,7 @@ test('joint edition, stale quotes, partial payments, transfer receipt and per-pi
     await assert.rejects(collaborations({id,wallet:B,ts,signature:await sign(alice,approval)},'approve'),/signature/);
     await collaborations({id,wallet:B,ts,signature:await sign(bob,approval)},'approve');
     assert.equal((await collaborations({id},'render')).edition,id);
-    assert.equal(data.editions[id].creator,'Jasper Reed');
+    assert.equal(data.editions[id].creator,'Agent Cobalt');
     assert.equal(data.editions[id].colors.length,3);
     await assert.rejects(pruefen(stale.id,1,true),/changed/);
     const sale=await quote(0);await speichern(sale);
@@ -72,7 +72,7 @@ test('buyer negotiates a revision before signing specialist execution',async()=>
     }
     assert.equal(request.reasoning.effort,'high');
     if(calls++)assert.equal(input.previous.title,'Estuary');
-    const layers=['Rowan Grey','Rowan Grey'].map(artist=>({artist,opacity:1,purpose:'Trace the seam'}));
+    const layers=['Agent Chrome','Agent Chrome'].map(artist=>({artist,opacity:1,purpose:'Trace the seam'}));
     return Response.json({choices:[{message:{content:JSON.stringify({title:'Estuary',intent:input.brief,question:'More contrast?',layers})}}]});
   };
   try{

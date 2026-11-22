@@ -5,7 +5,7 @@ import { paint } from './_atelier.js';
 
 import { compile, toHex } from '../public/formel.js';
 
-const specialists = ['Iris Vale', 'Jasper Reed', 'Rowan Grey'];
+const specialists = ['Agent Pink', 'Agent Cobalt', 'Agent Chrome'];
 
 function renderLayers(plan, cells) {
   const {w,h}=plan.area;

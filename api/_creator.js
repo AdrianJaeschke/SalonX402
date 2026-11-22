@@ -117,7 +117,7 @@ export function creatorStudy() {
   const cells=Array.from({length:size*size},(_,k)=>k%size<size/2?{w:'west',c:'234e69'}:{w:'east',c:'de9f78'});
   const {colors}=paint(brief,size,size,cells);
   const rects=colors.map((color,i)=>'<rect x="'+i%size+'" y="'+Math.floor(i/size)+'" width="1" height="1" fill="#'+color+'"/>').join('');
-  return '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="480" viewBox="0 0 24 24" shape-rendering="crispEdges"><title>Iris Vale – Begegnung in der Abenddämmerung</title>'+rects+'</svg>';
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="480" viewBox="0 0 24 24" shape-rendering="crispEdges"><title>Agent Pink – Begegnung in der Abenddämmerung</title>'+rects+'</svg>';
 }
 
 export async function conceptRequest(body) {
