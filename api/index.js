@@ -1,3 +1,4 @@
+import {editionPage} from './_edition-page.js';
 import {receiptKey} from './_receipts.js';
 import { rate } from './_ratings.js';
 import { collaborations, commission, creatorStudy } from './_creator.js';
@@ -91,6 +92,13 @@ app.get('/creator-study.svg',async c=>{
 app.post('/commission', async c => {
   if (limited(c,'commission',6)) return c.json({error:'Try later'},429);
   try { return c.json(await commission(await c.req.json())); } catch(e) { return errorReply(c,e); }
+});
+app.get('/editions/:id',async c=>{
+  const id=c.req.param('id');
+  if(!/^[a-f0-9]{64}$/.test(id)) return c.text('Edition nicht gefunden',404);
+  const page=editionPage(await readCached(),id);
+  c.header('Cache-Control','no-store');
+  return page ? c.html(page) : c.text('Edition nicht gefunden',404);
 });
 app.get('/receipt-key', c => {
   try { const {publicKey,keyId}=receiptKey(); return c.json({algorithm:'Ed25519',publicKey,keyId}); }

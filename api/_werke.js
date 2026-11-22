@@ -242,7 +242,7 @@ export async function adminSetzen(b) {
   if (!(Math.abs(Date.now() - ts) < 600_000)) throw new Fehler('Signature too old');
   const ok = SALON && await verifyMessage({ address: SALON, message: adminNachricht(werk, aus, ts), signature: b.signature || b.signatur }).catch(() => false);
   if (!ok) throw new Fehler('Only the salon wallet may do this', 401);
-  return update(d => { const w = (d.werke || []).find(w => w.id === werk); if (!w) return { abort: true, error: 'Work not found' }; w.aus = aus; return { ok: true, work: werk, hidden: aus }; });
+  return update(d => { const w = (d.werke || []).find(w => w.id === werk); if (!w) return { abort: true, error: 'Work not found' }; w.aus = aus; if(d.editions?.[werk]) d.editions[werk].hidden=aus; return { ok: true, work: werk, hidden: aus }; });
 }
 export async function melden(ids) {
   return update(d => { for (const [id, n] of ids) { const w = (d.werke || []).find(w => w.id === id); if (w) w.gemeldet = (w.gemeldet || 0) + n; } });
