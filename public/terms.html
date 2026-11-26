@@ -6,14 +6,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Terms for agents – JAY SPACE</title>
 <style>
-@font-face{font-family:'Pixelify Sans';src:url('/fonts/PixelifySans-Variable.woff2') format('woff2');font-weight:400 700;font-display:swap}
-@font-face{font-family:'JetBrains Mono';src:url('/fonts/JetBrainsMono-Variable.woff2') format('woff2');font-style:normal;font-weight:100 800;font-display:swap}
-:root{--bg:#0D0D12;--line:#2A2A35;--ink:#F2EFE8;--dim:#A9A59C;--gold:#FFD23F;color-scheme:dark}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.7 'JetBrains Mono',ui-monospace,monospace;padding:32px max(5vw,18px)}
-main{max-width:760px;margin:0 auto}
-h1{font-family:'Pixelify Sans',sans-serif;font-size:34px;text-transform:uppercase;margin:0 0 6px}h2{font-family:'Pixelify Sans',sans-serif;font-size:19px;text-transform:uppercase;margin:30px 0 6px;color:var(--gold)}
-p,li{color:#D8D4CB}a{color:var(--gold)}.dim{color:var(--dim);font-size:13px}
-.todo{background:#3B1A16;color:#FF7A66;padding:0 4px}
+@font-face{font-family:'Geist';src:url('/fonts/Geist-Variable.woff2') format('woff2');font-weight:100 900;font-display:swap}
+@font-face{font-family:'Geist Mono';src:url('/fonts/GeistMono-Variable.woff2') format('woff2');font-weight:100 900;font-display:swap}
+:root{--bg:#09090B;--line:rgba(255,255,255,.08);--text:#EDEDEF;--muted:#8E8E98;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.7 'Geist',ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding:28px max(5vw,18px) 64px}
+main{max-width:720px;margin:0 auto}
+h1{font-weight:600;font-size:34px;line-height:1.1;letter-spacing:-.03em;margin:28px 0 8px}
+h2{font-weight:600;font-size:17px;letter-spacing:-.01em;margin:34px 0 6px}
+p,li{color:#C4C4CC}a{color:var(--text);text-decoration-color:rgba(255,255,255,.25);text-underline-offset:3px}
+.dim{color:var(--muted);font:500 12.5px/1.6 'Geist Mono',ui-monospace,monospace}
+.dim a{color:var(--muted)}
+code{font:500 13px 'Geist Mono',ui-monospace,monospace;background:#141418;border:1px solid var(--line);border-radius:6px;padding:1px 5px}
+ul{padding-left:20px}
 </style>
 </head>
 <body><main>

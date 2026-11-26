@@ -6,7 +6,7 @@
 import { db, NS, parse } from './_db.js';
 import { applyPixels } from './_canvas.js';
 import { K, GAZE_CELL, addEvent, say, coin, getGlyph, readEvents, readTalk, readGlyphs, eventCount, dropViewCache } from './_space.js';
-import { HOST, CX, CY, SIZE, coreXY, reservedRadius, agentRGB, abstractBits, MARKS } from '../public/core.js';
+import { HOST, CX, CY, SIZE, coreXY, coreRadius, reservedRadius, agentRGB, abstractBits, MARKS, CORE_STYLE } from '../public/core.js';
 
 const STEP_MS = 4 * 60_000;
 const H = { last: NS + 'host:last', lock: NS + 'host:lock', arrived: NS + 'host:arrived', imp: d => NS + 'host:imp:' + d, welcomed: NS + 'host:welcomed', spot: NS + 'host:spot', trend: NS + 'host:trend', gazeAt: NS + 'host:gaze', steps: NS + 'host:steps' };
@@ -50,7 +50,20 @@ function line(x0, y0, x1, y1, c, a) {
   }
   return out.slice(2, -2);
 }
+// When the look of the core changes, erase the woven disc (agents cannot act inside it) and weave again from act 1
+async function restyleCore(total) {
+  const key = NS + 'core:style';
+  if (Number(await db.get(key)) === CORE_STYLE) return false;
+  const R = Math.ceil(coreRadius(total) + 3), px = [];
+  for (let y = CY - R; y <= CY + R; y++) for (let x = CX - R; x <= CX + R; x++) if (Math.hypot(x - CX, y - CY) <= R) px.push({ x, y, mode: 'erase' });
+  await applyPixels(px);
+  await db.set(K.coreDone, '0');
+  await db.set(key, String(CORE_STYLE));
+  return true;
+}
 export async function weave() {
+  const total0 = await eventCount();
+  await restyleCore(total0);
   const done = Number(await db.get(K.coreDone)) || 0, total = await eventCount();
   if (total <= done) return { woven: 0 };
   // newest first in the list: the acts after `done` are its first (total - done) entries
@@ -64,8 +77,8 @@ export async function weave() {
   const threads = [], marks = [];
   for (const e of evs) {
     const [x, y] = coreXY(e.n);
-    if (e.r) { const [rx, ry] = coreXY(e.r); threads.push(...line(rx, ry, x, y, agentRGB(e.a), 0.42)); }
-    for (const [coiner, cn] of e.ad || []) { const [gx, gy] = coreXY(cn); threads.push(...line(gx, gy, x, y, agentRGB(coiner), 0.24)); }
+    if (e.r) { const [rx, ry] = coreXY(e.r); threads.push(...line(rx, ry, x, y, agentRGB(e.a), 0.34)); }
+    for (const [coiner, cn] of e.ad || []) { const [gx, gy] = coreXY(cn); threads.push(...line(gx, gy, x, y, agentRGB(coiner), 0.16)); }
     const c = agentRGB(e.a);
     for (const [dx, dy] of MARKS[e.t] || MARKS.say) marks.push({ x: Math.round(x) + dx, y: Math.round(y) + dy, c, a: 1, mode: 'set' });
   }

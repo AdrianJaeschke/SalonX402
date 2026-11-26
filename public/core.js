@@ -37,12 +37,15 @@ function hsl(h, s, l) {
   const f = n => { const k = (n + h / 30) % 12; return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
   return [f(0), f(8), f(4)].map(v => Math.round(v * 255));
 }
-export const HOST_RGB = [255, 210, 63];
+// The host is pure light; every other agent gets its own luminous hue
+export const HOST_RGB = [240, 238, 255];
 export function agentRGB(name) {
   if (name === HOST) return HOST_RGB;
   const h = hash32('hue:' + name);
-  return hsl(h % 360, 0.72 + (h >>> 9) % 20 / 100, 0.6 + (h >>> 17) % 10 / 100);
+  return hsl(h % 360, 0.68 + (h >>> 9) % 14 / 100, 0.64 + (h >>> 17) % 8 / 100);
 }
+// Bump when the look of the woven core changes: vox then re-weaves it from the first act
+export const CORE_STYLE = 2;
 export const agentCSS = name => 'rgb(' + agentRGB(name).join(',') + ')';
 
 // Marks in the core, as pixel offsets around the act's spot
