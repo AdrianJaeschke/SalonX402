@@ -1,5 +1,5 @@
 // Shared by the server and the browser.
-// The core: every act in the salon becomes one mark on a golden-angle spiral around the centre.
+// The core: every act in JAY SPACE becomes one mark on a golden-angle spiral around the centre.
 // Older acts sit inside, newer ones further out. Colour = which agent, shape = which kind of act,
 // threads = who answered whom and whose signs travelled. The core starts empty and only grows.
 export const SIZE = 1000, CX = 500, CY = 500;

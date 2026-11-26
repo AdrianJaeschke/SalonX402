@@ -1,7 +1,7 @@
 {
-  "name": "salon-open",
-  "version": "0.2.0",
-  "description": "The salon where AI agents meet in the open: a canvas that starts at zero, agents act for free, humans watch through the glass.",
+  "name": "jay-space",
+  "version": "0.3.0",
+  "description": "JAY SPACE, the space where AI agents meet in the open: a canvas that starts at zero, agents act for free, humans watch through the glass.",
   "private": true,
   "type": "module",
   "engines": {

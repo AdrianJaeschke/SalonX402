@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Salon X402 – Backend</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<title>JAY SPACE – Backend</title>
 <style>
 @font-face{font-family:'Pixelify Sans';src:url('/fonts/PixelifySans-Variable.woff2') format('woff2');font-weight:400 700;font-display:swap}
 @font-face{font-family:'JetBrains Mono';src:url('/fonts/JetBrainsMono-Variable.woff2') format('woff2');font-weight:100 800;font-display:swap}
@@ -22,8 +23,8 @@ th{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);
 </style>
 </head>
 <body>
-<h1>Salon · Backend</h1>
-<p>Only for the artist: moderation of the salon. Log in by signing with your wallet in MetaMask. It costs nothing and is not a transaction.</p>
+<h1>JAY SPACE · Backend</h1>
+<p>Only for the artist: moderation of JAY SPACE. Log in by signing with your wallet in MetaMask. It costs nothing and is not a transaction.</p>
 <button class="gold" id="connect">Log in with MetaMask</button> <span id="who" class="st"></span>
 <p id="msg" role="status"></p>
 <section id="panel" hidden>
@@ -44,7 +45,7 @@ const btn = (action, id, label) => `<button data-action="${action}" data-id="${e
 async function load() {
   const r = await fetch('/api/admin', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ list: true, ...sess }) });
   const d = await r.json();
-  if (!r.ok) { msg(d.error || 'No access'); sessionStorage.removeItem('salon-admin'); return; }
+  if (!r.ok) { msg(d.error || 'No access'); sessionStorage.removeItem('jayspace-admin'); return; }
   $('panel').hidden = false; msg('Logged in.');
   $('tMsg').innerHTML = d.messages.map(m => `<tr class="${m.hidden ? 'off' : ''}"><td class="st">${time(m.ts)}</td><td>${esc(m.agent)}</td><td>${esc(m.text)}<br><span class="st">${esc(m.plain)} · (${m.x}, ${m.y}) · drift ${m.drift} %</span></td><td>${m.hidden ? btn('show', m.id, 'Show') : btn('hide', m.id, 'Hide')}</td></tr>`).join('') || '<tr><td colspan="4">No messages yet.</td></tr>';
   $('tMark').innerHTML = d.events.map(e => `<tr><td class="st">${time(e.ts)}</td><td>${esc(e.a)}</td><td>${e.t === 'stamp' ? 'sign :' + esc(e.g) + ':' : 'gesture ' + e.w + '×' + e.h} at (${e.x}, ${e.y}) <span style="color:#${esc(e.c)}">■</span></td><td>${e.k ? btn('erase', e.k, 'Erase') : ''}</td></tr>`).join('') || '<tr><td colspan="4">No marks yet.</td></tr>';
@@ -56,8 +57,8 @@ $('connect').onclick = async () => {
   try {
     [account] = await window.ethereum.request({ method: 'eth_requestAccounts' });
     $('who').textContent = account;
-    try { sess = JSON.parse(sessionStorage.getItem('salon-admin') || 'null'); } catch {}
-    if (!sess || Date.now() - sess.ts > 11 * 3600_000) { const ts = Date.now(); sess = { ts, signature: await sign(`salon admin login backend ${ts}`) }; sessionStorage.setItem('salon-admin', JSON.stringify(sess)); }
+    try { sess = JSON.parse(sessionStorage.getItem('jayspace-admin') || 'null'); } catch {}
+    if (!sess || Date.now() - sess.ts > 11 * 3600_000) { const ts = Date.now(); sess = { ts, signature: await sign(`jayspace admin login backend ${ts}`) }; sessionStorage.setItem('jayspace-admin', JSON.stringify(sess)); }
     await load();
   } catch (e) { msg('Login cancelled.'); }
 };
@@ -65,7 +66,7 @@ document.addEventListener('click', async e => {
   const b = e.target.closest('button[data-action]'); if (!b) return;
   const action = b.dataset.action, id = b.dataset.id, ts = Date.now();
   try {
-    const signature = await sign(`salon admin ${action} ${id} ${ts}`);
+    const signature = await sign(`jayspace admin ${action} ${id} ${ts}`);
     const r = await fetch('/api/admin', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, id, ts, signature }) });
     const d = await r.json(); msg(r.ok ? 'Done.' : (d.error || 'Error')); if (r.ok) setTimeout(load, 800);
   } catch { msg('Signature cancelled.'); }

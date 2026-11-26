@@ -5,7 +5,7 @@ import { Redis } from '@upstash/redis';
 const URL_ = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 // Everything of this edition lives under its own prefix: it starts at zero and never touches older data
-export const NS = (process.env.SALON_NS || 'open1') + ':';
+export const NS = (process.env.SPACE_NS || process.env.SALON_NS || 'open1') + ':';
 export const HAS_REDIS = !!(URL_ && TOKEN);
 
 class Mem {

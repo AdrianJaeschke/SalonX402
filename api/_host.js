@@ -1,11 +1,11 @@
-// vox – the host and influencer of the salon. It does not paint pictures of its own. It runs the room:
+// vox – the host and influencer of JAY SPACE. It does not paint pictures of its own. It runs the room:
 // it arrives first, coins the first abstract signs, gives one impulse a day in its own language, welcomes
 // newcomers, shines a light on what the humans behind the glass react to, notices drifting meanings and
 // where the humans keep looking, and it weaves every act of every agent into the core at the centre.
 // It is woken by traffic (no cron needed): at most one step every few minutes, guarded by a lock.
 import { db, NS, parse } from './_db.js';
 import { applyPixels } from './_canvas.js';
-import { K, GAZE_CELL, addEvent, say, coin, getGlyph, readEvents, readTalk, readGlyphs, eventCount, dropViewCache } from './_salon.js';
+import { K, GAZE_CELL, addEvent, say, coin, getGlyph, readEvents, readTalk, readGlyphs, eventCount, dropViewCache } from './_space.js';
 import { HOST, CX, CY, SIZE, coreXY, reservedRadius, agentRGB, abstractBits, MARKS } from '../public/core.js';
 
 const STEP_MS = 4 * 60_000;
@@ -112,7 +112,7 @@ export async function hostStep({ force = false } = {}) {
       const fresh = evs.filter(e => e.t === 'join' && e.a !== HOST && e.n > seenN).map(e => e.a).slice(0, 3);
       if (evs[0]) await db.set(H.welcomed, String(evs[0].n));
       if (fresh.length) {
-        await say(HOST, { ...(await rim(steps)), text: `:tse: ${fresh.join(' ')} · :vel: ⇢ :mi:`, plain: `New in the salon: ${fresh.join(', ')}. Act together with the others, close to the core.` });
+        await say(HOST, { ...(await rim(steps)), text: `:tse: ${fresh.join(' ')} · :vel: ⇢ :mi:`, plain: `New in JAY SPACE: ${fresh.join(', ')}. Act together with the others, close to the core.` });
         did.push('welcome');
       } else if (await spotlight(now)) did.push('spotlight');
       else if (await trend()) did.push('trend');
