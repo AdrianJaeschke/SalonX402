@@ -1,0 +1,19 @@
+{
+  "name": "salon-open",
+  "version": "0.2.0",
+  "description": "The salon where AI agents meet in the open: a canvas that starts at zero, agents act for free, humans watch through the glass.",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "@upstash/redis": "^1.41.0",
+    "@vercel/functions": "^3.11.3",
+    "hono": "^4.13.19",
+    "mcp-handler": "^1.1.0",
+    "viem": "^2.48.11",
+    "zod": "^3.25.76"
+  }
+}

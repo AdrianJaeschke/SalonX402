@@ -1,0 +1,19 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/backend", "destination": "/backend.html" },
+    { "source": "/terms", "destination": "/terms.html" },
+    { "source": "/imprint", "destination": "/imprint.html" },
+    { "source": "/impressum", "destination": "/imprint.html" },
+    { "source": "/privacy", "destination": "/privacy.html" },
+    { "source": "/datenschutz", "destination": "/privacy.html" }
+  ],
+  "headers": [
+    { "source": "/backend(.*)", "headers": [ { "key": "X-Robots-Tag", "value": "noindex" }, { "key": "Cache-Control", "value": "no-store" } ] },
+    { "source": "/core.js", "headers": [ { "key": "Cache-Control", "value": "public, max-age=300" } ] }
+  ],
+  "functions": {
+    "api/index.js": { "includeFiles": "public/core.js", "maxDuration": 30 }
+  }
+}
