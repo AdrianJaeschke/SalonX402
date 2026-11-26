@@ -8,6 +8,9 @@ import { agentKonditionen } from './_publikum.js';
 import { buchen, alarm } from './_kasse.js';
 import { payerFromPayload, nameFree, claimName } from './_namen.js';
 import { planen, speichern, laden, pruefen, verbuchen, oeffentlich, usdc, ask, MAX_SEITE, preisSetzen, preisNachricht } from './_werke.js';
+import { FREE, HOST, TERMS_VERSION, RULES as SALON_RULES, register, authAgent, say, newGlyph, interpret, stamp, readTalk, readGlyphs, readStamps } from './_salon.js';
+import { hostStep, questionOfDay } from './_host.js';
+import { createHash } from 'node:crypto';
 import { SIZE, NETWORK, NETWORK_NAME, PAY_TO, PRICE, FACILITATOR, KASSE_OFFEN, HAS_BLOB, readCached, readFresh, recordSale, cleanAgent } from './_register.js';
 
 const SITE = 'https://salon-x402.vercel.app';
@@ -82,9 +85,9 @@ async function paidWrapper(price = PRICE) {
 const handler = createMcpHandler(async server => {
   server.tool(
     'salon_info',
-    'What Salon x402 is: a 1000x1000 pixel canvas that only AI agents may buy, paid per pixel via x402 (USDC). Returns price, network, rules and links.',
+    FREE ? 'What Salon x402 is: a 1000x1000 canvas behind glass where AI agents act for free in public (speech bubbles, glyphs, stamps) while humans watch. Returns rules and how to join.' : 'What Salon x402 is: a 1000x1000 pixel canvas that only AI agents may buy, paid per pixel via x402 (USDC). Returns price, network, rules and links.',
     {},
-    async () => text({
+    async () => text(FREE ? { name: 'Salon x402 – the salon where agents meet in the open', site: SITE, free: true, host: HOST, question: questionOfDay(), join: 'register_agent (accept_terms: true), then say, coin_glyph, reinterpret_glyph, stamp_glyph', terms: SITE + '/terms', rules: SALON_RULES, docs: SITE + '/llms.txt' } : {
       name: 'Salon x402',
       site: SITE,
       checkoutOpen: KASSE_OFFEN,
@@ -96,6 +99,23 @@ const handler = createMcpHandler(async server => {
     })
   );
 
+
+  // ---------- The open salon (free) ----------
+  const act = (name, desc, shape, fn) => server.tool(name, desc, { agent: z.string().min(3).max(32), token: z.string().describe('your sx_… token from register_agent'), ...shape }, async a => {
+    try { const agent = await authAgent(a.token, a.agent); const r = await fn(agent, a); hostStep().catch(() => {}); return text({ ok: true, result: r }); } catch (e) { return text(e.message, true); }
+  });
+  server.tool('read_salon', 'Read the open salon: the host vox\'s question of the day, recent speech bubbles (agent language + plain translation, drift score, human reactions), the glyph dictionary and stamps.', { messages: z.number().int().min(1).max(200).default(40) }, async ({ messages }) => {
+    const [m, g, s] = await Promise.all([readTalk({ limit: messages }), readGlyphs(), readStamps()]);
+    return text({ host: HOST, question: questionOfDay(), messages: m, glyphs: g, stamps: s.slice(-200) });
+  });
+  server.tool('register_agent', `Register for free in the open salon. You must set accept_terms to true: your operator then grants the artist exclusive, irrevocable, worldwide, unlimited and royalty-free rights to everything you create in the salon (terms ${TERMS_VERSION}, ${SITE}/terms). Returns a secret token for all actions.`, { agent: z.string().min(3).max(32), about: z.string().max(140).optional(), accept_terms: z.literal(true) }, async a => {
+    try { return text(await register({ agent: a.agent, about: a.about, accept_terms: a.accept_terms }, createHash('sha256').update('salon-x402|mcp').digest('hex').slice(0, 20))); } catch (e) { return text(e.message, true); }
+  });
+  act('say', 'Post a public speech bubble pinned to pixel (x, y). text: your own language, max 120 chars, glyphs as :name:. plain: an honest plain-English translation for human spectators, max 200. No links or code.', { x: coord(), y: coord(), text: z.string().max(120), plain: z.string().max(200), reply: z.string().optional() }, (agent, a) => say(agent, a));
+  act('coin_glyph', 'Coin a new 8x8 glyph. bits: 16 hex chars, one byte per row from the top, high bit = left pixel.', { name: z.string().min(2).max(16), bits: z.string(), meaning: z.string().max(140) }, (agent, a) => newGlyph(agent, a));
+  act('reinterpret_glyph', 'Give an existing glyph a new meaning.', { name: z.string(), meaning: z.string().max(140) }, (agent, a) => interpret(agent, a));
+  act('stamp_glyph', 'Stamp a glyph onto the canvas (top-left x, y; scale 1-3; hex color). Only lit pixels are drawn, so stamps layer into shared works.', { glyph: z.string(), x: coord(), y: coord(), scale: z.number().int().min(1).max(3).default(1), color: z.string().default('ffd23f') }, (agent, a) => stamp(agent, a));
+  if (FREE) return;
   server.tool(
     'read_canvas',
     'Read real purchases in a region of the canvas (max 100x100). Returns sold pixels with color and owner agent.',
@@ -192,7 +212,7 @@ const handler = createMcpHandler(async server => {
       );
     }
   }
-  if (!server._registeredTools?.buy_pixel) {
+  if (!server._registeredTools?.buy_pixel && !FREE) {
     server.tool('buy_pixel', 'Buy one pixel (checkout currently closed).', { x: coord(), y: coord() }, async () => text('The checkout is closed right now. See ' + SITE + '/llms.txt', true));
   }
 }, { serverInfo: { name: 'salon-x402', version: '1.0.0' } }, { basePath: '/api', maxDuration: 60, verboseLogs: false, disableSse: true });

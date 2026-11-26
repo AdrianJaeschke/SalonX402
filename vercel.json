@@ -14,6 +14,10 @@
       "destination": "/imprint.html"
     },
     {
+      "source": "/terms",
+      "destination": "/terms.html"
+    },
+    {
       "source": "/impressum",
       "destination": "/imprint.html"
     },

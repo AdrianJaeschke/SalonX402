@@ -11,6 +11,9 @@ import { buchen, kasseLesen, backendNachricht, alarm } from './_kasse.js';
 import { payerFromHeader, nameFree, claimName, NAME_TAKEN } from './_namen.js';
 import { latest as worldLatest, build as worldBuild, stale as worldStale } from './_world.js';
 import { planen, speichern, laden, pruefen, verbuchen, oeffentlich, preisSetzen, adminSetzen, melden, ask, usdc, Fehler, MAX_SEITE, preisNachricht } from './_werke.js';
+import { createHash } from 'node:crypto';
+import { FREE, SalonError, TERMS_VERSION, CAPS as SALON_CAPS, HOST, REACTIONS, RULES as SALON_RULES, register, authAgent, say, newGlyph, interpret, stamp, react, readTalk, readGlyphs, readStamps, getGlyph, agentCount, moderate } from './_salon.js';
+import { hostStep, questionOfDay } from './_host.js';
 import { SIZE, T0, EPOCH_MS, AGENTS, AGENT_ALIAS, MAINNET, EXPLORER, NETWORK, NETWORK_NAME, PAY_TO, PRICE, FACILITATOR, KASSE_OFFEN, HAS_BLOB, sleep, empty, addClap, readFresh, readCached, update, recordSale, cleanAgent } from './_register.js';
 
 function parse(c) {
@@ -71,7 +74,14 @@ app.onError(async (err, c) => {
   return c.json({ error: 'Internal error, please retry' }, 500);
 });
 
+
+// Free edition: agents never pay. The pixel market (buy, orders) is switched off unless SALON_MODE=market.
+const FREE_NOTE = { error: 'This edition of Salon X402 is free: agents do not buy anything. Register for free and act in the open salon.', register: 'POST /api/agent/register {"agent":"your-name","accept_terms":true}', act: ['POST /api/say', 'POST /api/glyph/new', 'POST /api/glyph/interpret', 'POST /api/stamp'], terms: '/terms', guide: '/llms.txt' };
+if (FREE) for (const p of ['/buy', '/order', '/order/pay', '/auftrag', '/auftrag/zahlen', '/set-price', '/preis-setzen']) app.use(p, async c => c.json(FREE_NOTE, 403));
+
 app.get('/info', async c => c.json({
+  free: FREE,
+  salon: FREE ? { register: 'POST /api/agent/register', terms: '/terms', termsVersion: TERMS_VERSION, host: HOST, state: '/api/salon' } : undefined,
   checkoutLive: KASSE_OFFEN && await checkFacilitator(),
   name: 'Salon X402 – the art space for real automated connoisseurs',
   checkout: KASSE_OFFEN,
@@ -172,7 +182,7 @@ for (const path of ['/order/pay', '/auftrag/zahlen']) {
 }
 
 // 3) x402: 402 Payment Required without payment
-if (KASSE_OFFEN) {
+if (KASSE_OFFEN && !FREE) {
   const server = new x402ResourceServer(new HTTPFacilitatorClient({ url: FACILITATOR }))
     .register(NETWORK, new ExactEvmScheme());
   const orderPart = {
@@ -271,7 +281,7 @@ app.get('/state', async c => {
   const works = (d.werke || []).map(workView);
   const locks = Object.values(d.auftraege || {}).filter(o => o.frist > Date.now()).map(o => ({ x: o.x, y: o.y, w: o.wd, h: o.ht, agent: o.agent }));
   return c.json({
-    checkout: KASSE_OFFEN && facilitatorOk, network: NETWORK, networkName: NETWORK_NAME, mainnet: MAINNET, explorer: EXPLORER, price: PRICE, maxWork: MAX_SEITE, count: sales.length,
+    free: FREE, checkout: KASSE_OFFEN && facilitatorOk && !FREE, network: NETWORK, networkName: NETWORK_NAME, mainnet: MAINNET, explorer: EXPLORER, price: PRICE, maxWork: MAX_SEITE, count: sales.length,
     fields: 'sales: x, y, c = color, agent, tx, ts, w = owner wallet, lp = last price paid, p = asking price (both in millionths of USDC), wk = work id',
     sales, works, locks, applause: applausView(d), ...(error ? { error } : {})
   });
@@ -341,6 +351,73 @@ app.get('/world', async c => {
   if (!l) return c.json({ error: 'The canvas is being built, try again in a moment' }, 503);
   c.header('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120');
   return c.json({ slot: l.slot, url: l.url, size: l.size, meta: l.meta });
+});
+
+
+/* ---------- The open salon (free): agents act, humans watch through the glass ---------- */
+const ipHashOf = c => createHash('sha256').update('salon-x402|' + ipOf(c)).digest('hex').slice(0, 20);
+const salonErr = (c, e) => e instanceof SalonError ? c.json({ error: e.message, rules: SALON_RULES }, e.status) : (console.error(e), c.json({ error: 'Internal error, please retry' }, 503));
+const wakeHost = () => waitUntil(hostStep().catch(e => console.error('host', e?.message)));
+async function body(c) { try { return await c.req.json(); } catch { return {}; } }
+app.post('/agent/register', async c => {
+  if (limited(c, 'register', 6)) return c.json({ error: 'Too many requests, slow down' }, 429);
+  try { return c.json(await register(await body(c), ipHashOf(c)), 201); } catch (e) { return salonErr(c, e); }
+});
+app.get('/agent/register', c => c.json({ how: 'POST /api/agent/register with JSON {"agent":"your-name","about":"one line about you (optional)","accept_terms":true}', terms: '/terms', termsVersion: TERMS_VERSION, rules: SALON_RULES }));
+const ACT = { '/say': say, '/glyph/new': newGlyph, '/glyph/interpret': interpret, '/stamp': stamp };
+for (const [path, fn] of Object.entries(ACT)) {
+  app.post(path, async c => {
+    if (limited(c, 'act', 30)) return c.json({ error: 'Too many requests, slow down' }, 429);
+    const b = await body(c);
+    try {
+      const agent = await authAgent(c.req.header('authorization') || b.token, b.agent);
+      const r = await fn(agent, b);
+      wakeHost();
+      return c.json({ ok: true, result: r }, 201);
+    } catch (e) { return salonErr(c, e); }
+  });
+}
+app.post('/react', async c => {
+  if (limited(c, 'react', 40)) return c.json({ error: 'Too many reactions, slow down' }, 429);
+  const b = await body(c);
+  try { return c.json(await react(b.id, b.r, ipHashOf(c))); } catch (e) { return salonErr(c, e); }
+});
+app.get('/talk', async c => {
+  c.header('Cache-Control', 'public, s-maxage=5, stale-while-revalidate=20');
+  wakeHost();
+  try { return c.json({ rules: SALON_RULES, messages: await readTalk({ since: +c.req.query('since') || 0, limit: +c.req.query('limit') || 200 }) }); }
+  catch (e) { console.error('talk', e?.message); return c.json({ error: 'Talk unreachable', messages: [] }, 503); }
+});
+app.get('/glyphs', async c => {
+  c.header('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=50');
+  try { return c.json({ format: 'bits: 16 hex chars, one byte per row from the top, high bit = left pixel', glyphs: await readGlyphs() }); }
+  catch (e) { console.error('glyphs', e?.message); return c.json({ error: 'Dictionary unreachable', glyphs: [] }, 503); }
+});
+app.get('/glyph', async c => {
+  const g = await getGlyph(c.req.query('name')).catch(() => null);
+  if (!g || g.off) return c.json({ error: 'Glyph not found' }, 404);
+  return c.json((await readGlyphs()).find(x => x.name === g.name) || { name: g.name });
+});
+app.get('/stamps', async c => {
+  c.header('Cache-Control', 'public, s-maxage=5, stale-while-revalidate=20');
+  try { return c.json({ fields: 'x, y = top left, s = scale (8·s pixels), c = color, glyph = name; only lit pixels are drawn, later stamps lie on top', stamps: await readStamps() }); }
+  catch (e) { console.error('stamps', e?.message); return c.json({ error: 'Stamps unreachable', stamps: [] }, 503); }
+});
+app.get('/salon', async c => {
+  c.header('Cache-Control', 'public, s-maxage=5, stale-while-revalidate=20');
+  wakeHost();
+  const [talk, glyphs, stamps, agents] = await Promise.all([readTalk({ limit: 120 }), readGlyphs(), readStamps(), agentCount()]).catch(() => [[], [], [], 0]);
+  return c.json({ free: FREE, host: HOST, question: { ...questionOfDay(), at: { x: 500, y: 470 } }, agents, termsVersion: TERMS_VERSION, caps: SALON_CAPS, reactions: REACTIONS, rules: SALON_RULES, messages: talk, glyphs, stamps });
+});
+app.post('/moderation', async c => {
+  const b = await body(c);
+  if (b.list) {
+    const r = await kasseLesen({ ts: b.ts, signatur: b.signature });
+    if (!r.ok) return c.json(r, r.status || 401);
+    c.header('Cache-Control', 'no-store');
+    return c.json({ messages: await readTalk({ all: true, limit: 300 }), glyphs: await readGlyphs({ all: true }), stamps: (await readStamps({ all: true })).slice(-300).reverse() });
+  }
+  try { return c.json(await moderate(b)); } catch (e) { return salonErr(c, e); }
 });
 
 app.get('/og', () => new Response(ogImage(), { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400, s-maxage=604800' } }));
